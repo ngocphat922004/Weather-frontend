@@ -1,0 +1,129 @@
+.dashboard-page {
+    width     : 100%;
+    min-height: 100vh;
+    padding   : 28px;
+    color     : #172033;
+    background: #f7f8fc;
+}
+
+.dashboard-page__header {
+    display        : flex;
+    align-items    : flex-start;
+    justify-content: space-between;
+    gap            : 20px;
+    margin-bottom  : 22px;
+
+    h1 {
+        margin     : 0 0 6px;
+        font-size  : 30px;
+        line-height: 1.2;
+    }
+
+    p {
+        margin   : 0;
+        color    : #64748b;
+        font-size: 14px;
+    }
+
+    button {
+        min-height   : 42px;
+        padding      : 0 18px;
+        border       : 0;
+        border-radius: 10px;
+        color        : #fff;
+        background   : #4f46e5;
+        font         : inherit;
+        font-size    : 14px;
+        font-weight  : 600;
+        cursor       : pointer;
+
+        &:hover {
+            background: #4338ca;
+        }
+    }
+}
+
+.dashboard-page__eyebrow {
+    margin-bottom : 5px !important;
+    color         : #4f46e5 !important;
+    font-size     : 12px !important;
+    font-weight   : 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.api-debug-card {
+    margin-bottom: 18px;
+    padding      : 18px;
+    overflow     : hidden;
+    border       : 1px solid #e2e5ef;
+    border-radius: 14px;
+    background   : #fff;
+    box-shadow   : 0 5px 18px rgb(15 23 42 / 5%);
+
+    pre {
+        max-height   : 420px;
+        margin       : 16px 0 0;
+        padding      : 16px;
+        overflow     : auto;
+        border-radius: 10px;
+        color        : #d1fae5;
+        background   : #111827;
+        font-family  :
+            Consolas,
+            'Courier New',
+            monospace;
+        font-size    : 13px;
+        line-height  : 1.6;
+        white-space  : pre-wrap;
+        overflow-wrap: anywhere;
+    }
+}
+
+.api-debug-card__heading {
+    display        : flex;
+    align-items    : center;
+    justify-content: space-between;
+    gap            : 16px;
+
+    h2 {
+        margin   : 0 0 4px;
+        font-size: 17px;
+    }
+
+    p {
+        margin   : 0;
+        color    : #64748b;
+        font-size: 12px;
+    }
+
+    >span {
+        padding      : 6px 10px;
+        border-radius: 999px;
+        color        : #166534;
+        background   : #dcfce7;
+        font-size    : 11px;
+        font-weight  : 700;
+    }
+}
+
+@media (max-width: 640px) {
+    .dashboard-page {
+        padding: 16px;
+    }
+
+    .dashboard-page__header {
+        h1 {
+            font-size: 25px;
+        }
+    }
+
+    .api-debug-card {
+        padding: 14px;
+    }
+
+    .api-debug-card__heading {
+        align-items   : flex-start;
+        flex-direction: column;
+    }
+}
