@@ -1,0 +1,80 @@
+@use '../../styles/mixins'as mixins;
+
+.weather-chart {
+    min-width: 0;
+    padding  : 18px;
+}
+
+.weather-chart__header {
+    @include mixins.card-header;
+
+    margin-bottom: 14px;
+
+    h2 {
+        margin   : 0 0 3px;
+        font-size: 14px;
+    }
+
+    p {
+        margin   : 0;
+        color    : var(--color-text-muted);
+        font-size: 10px;
+    }
+}
+
+.weather-chart__legend {
+    display    : inline-flex;
+    flex       : 0 0 auto;
+    align-items: center;
+    gap        : 6px;
+    color      : var(--color-text-secondary);
+    font-size  : 10px;
+    font-weight: 600;
+
+    i {
+        width        : 8px;
+        height       : 8px;
+        border-radius: 50%;
+        background   : var(--color-primary);
+    }
+}
+
+.weather-chart__content {
+    width : 100%;
+    height: 280px;
+
+    .recharts-surface {
+        overflow: visible;
+    }
+
+    .recharts-tooltip-wrapper {
+        outline: none;
+    }
+}
+
+.weather-chart__empty {
+    display      : grid;
+    height       : 280px;
+    place-items  : center;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    background   : var(--color-hover-background);
+    font-size    : 12px;
+}
+
+@include mixins.mobile {
+    .weather-chart {
+        padding: 15px;
+    }
+
+    .weather-chart__content,
+    .weather-chart__empty {
+        height: 240px;
+    }
+}
+
+.weather-chart__legend--rain {
+    i {
+        background: var(--color-rain);
+    }
+}

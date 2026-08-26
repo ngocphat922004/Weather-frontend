@@ -1,0 +1,199 @@
+@use '../../styles/mixins'as mixins;
+@use '../../styles/variables'as variables;
+
+.app-sidebar {
+    position      : fixed;
+    z-index       : 1000;
+    inset         : 0 auto 0 0;
+    display       : flex;
+    width         : var(--sidebar-width);
+    height        : 100vh;
+    flex-direction: column;
+    border-right  : 1px solid var(--color-border);
+    background    : var(--color-sidebar-background);
+    transition    :
+        transform var(--transition-base),
+        background var(--transition-base);
+}
+
+.app-sidebar__brand {
+    display        : flex;
+    height         : var(--header-height);
+    flex           : 0 0 var(--header-height);
+    align-items    : center;
+    justify-content: space-between;
+    padding        : 0 18px;
+    border-bottom  : 1px solid var(--color-border);
+}
+
+.app-sidebar__logo {
+    display       : flex;
+    min-width     : 0;
+    align-items   : center;
+    gap           : 10px;
+    color         : var(--color-primary);
+    font-size     : 15px;
+    font-weight   : 800;
+    letter-spacing: -0.02em;
+}
+
+.app-sidebar__logo-icon {
+    @include mixins.flex-center;
+
+    width        : 34px;
+    height       : 34px;
+    flex         : 0 0 34px;
+    border-radius: 10px;
+    color        : var(--color-text-inverse);
+    background   :
+        linear-gradient(135deg,
+            #3157df,
+            #6381f4);
+
+    svg {
+        width : 21px;
+        height: 21px;
+    }
+}
+
+.app-sidebar__logo-text {
+    @include mixins.text-ellipsis;
+}
+
+.app-sidebar__close {
+    @include mixins.button-reset;
+    @include mixins.flex-center;
+
+    display      : none;
+    width        : 38px;
+    height       : 38px;
+    flex         : 0 0 38px;
+    border-radius: 10px;
+    color        : var(--color-text-secondary);
+
+    &:hover {
+        color     : var(--color-primary);
+        background: var(--color-primary-soft);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+
+    svg {
+        width : 20px;
+        height: 20px;
+    }
+}
+
+.app-sidebar__nav {
+    display       : flex;
+    min-height    : 0;
+    flex          : 1 1 auto;
+    flex-direction: column;
+    gap           : 6px;
+    padding       : 18px 12px;
+    overflow-y    : auto;
+
+    @include mixins.custom-scrollbar;
+}
+
+.app-sidebar__link {
+    position     : relative;
+    display      : flex;
+    min-height   : 44px;
+    align-items  : center;
+    gap          : 12px;
+    padding      : 0 14px;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-secondary);
+    font-size    : 13px;
+    font-weight  : 600;
+    transition   :
+        color var(--transition-fast),
+        background var(--transition-fast);
+
+    &::after {
+        position: absolute;
+        top     : 10px;
+        right   : -12px;
+        bottom  : 10px;
+        width   : 3px;
+        border-radius:
+            var(--radius-pill) 0 0 var(--radius-pill);
+        background: transparent;
+        content   : '';
+    }
+
+    svg {
+        width       : 19px;
+        height      : 19px;
+        flex        : 0 0 19px;
+        stroke-width: 2;
+    }
+
+    &:hover {
+        color     : var(--color-primary);
+        background: var(--color-primary-soft);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+}
+
+.app-sidebar__link--active {
+    color     : var(--color-primary);
+    background: var(--color-primary-soft);
+
+    &::after {
+        background: var(--color-primary);
+    }
+}
+
+.app-sidebar__footer {
+    flex      : 0 0 auto;
+    padding   : 10px 12px 16px;
+    border-top: 1px solid var(--color-border);
+}
+
+.app-sidebar__settings {
+    @include mixins.button-reset;
+
+    display      : flex;
+    width        : 100%;
+    min-height   : 44px;
+    align-items  : center;
+    gap          : 12px;
+    padding      : 0 14px;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    font-size    : 13px;
+    font-weight  : 600;
+    cursor       : not-allowed;
+    opacity      : 0.75;
+
+    svg {
+        width : 19px;
+        height: 19px;
+        flex  : 0 0 19px;
+    }
+}
+
+@include mixins.tablet {
+    .app-sidebar {
+        width: min(var(--sidebar-width),
+                calc(100vw - 48px));
+        max-width : 290px;
+        box-shadow: var(--shadow-dropdown);
+        transform : translateX(-105%);
+    }
+
+    .app-sidebar--open {
+        transform: translateX(0);
+    }
+
+    .app-sidebar__close {
+        display: flex;
+    }
+}

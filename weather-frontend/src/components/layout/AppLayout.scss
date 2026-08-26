@@ -1,0 +1,39 @@
+@use '../../styles/mixins'as mixins;
+
+.app-layout {
+    min-height: 100vh;
+    background: var(--color-app-background);
+}
+
+.app-layout__content {
+    min-width  : 0;
+    min-height : 100vh;
+    margin-left: var(--sidebar-width);
+    padding-top: var(--header-height);
+    transition :
+        margin-left var(--transition-base);
+}
+
+.app-layout__overlay {
+    position       : fixed;
+    z-index        : 950;
+    inset          : 0;
+    display        : none;
+    width          : 100%;
+    height         : 100%;
+    padding        : 0;
+    border         : 0;
+    background     : rgb(15 23 42 / 45%);
+    cursor         : pointer;
+    backdrop-filter: blur(2px);
+}
+
+@include mixins.tablet {
+    .app-layout__content {
+        margin-left: 0;
+    }
+
+    .app-layout__overlay {
+        display: block;
+    }
+}

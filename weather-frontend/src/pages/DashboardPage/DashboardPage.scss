@@ -1,129 +1,84 @@
+@use '../../styles/mixins'as mixins;
+
 .dashboard-page {
-    width     : 100%;
-    min-height: 100vh;
-    padding   : 28px;
-    color     : #172033;
-    background: #f7f8fc;
+    display: grid;
+    gap    : 18px;
 }
 
-.dashboard-page__header {
-    display        : flex;
-    align-items    : flex-start;
-    justify-content: space-between;
-    gap            : 20px;
-    margin-bottom  : 22px;
-
-    h1 {
-        margin     : 0 0 6px;
-        font-size  : 30px;
-        line-height: 1.2;
-    }
-
-    p {
-        margin   : 0;
-        color    : #64748b;
-        font-size: 14px;
-    }
-
-    button {
-        min-height   : 42px;
-        padding      : 0 18px;
-        border       : 0;
-        border-radius: 10px;
-        color        : #fff;
-        background   : #4f46e5;
-        font         : inherit;
-        font-size    : 14px;
-        font-weight  : 600;
-        cursor       : pointer;
-
-        &:hover {
-            background: #4338ca;
-        }
-    }
+.dashboard-page .page-header {
+    margin-bottom: 0;
 }
 
-.dashboard-page__eyebrow {
-    margin-bottom : 5px !important;
-    color         : #4f46e5 !important;
-    font-size     : 12px !important;
-    font-weight   : 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
+.dashboard-page__weather-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    gap: 14px;
 }
 
-.api-debug-card {
-    margin-bottom: 18px;
-    padding      : 18px;
-    overflow     : hidden;
-    border       : 1px solid #e2e5ef;
-    border-radius: 14px;
-    background   : #fff;
-    box-shadow   : 0 5px 18px rgb(15 23 42 / 5%);
+.dashboard-page__metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
 
-    pre {
-        max-height   : 420px;
-        margin       : 16px 0 0;
-        padding      : 16px;
-        overflow     : auto;
-        border-radius: 10px;
-        color        : #d1fae5;
-        background   : #111827;
-        font-family  :
-            Consolas,
-            'Courier New',
-            monospace;
-        font-size    : 13px;
-        line-height  : 1.6;
-        white-space  : pre-wrap;
-        overflow-wrap: anywhere;
+.dashboard-page__insights {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.45fr) minmax(300px, 0.75fr);
+    gap: 14px;
+}
+
+.dashboard-page__refresh-error {
+    margin : 0;
+    padding: 10px 14px;
+    border : 1px solid color-mix(in srgb,
+            var(--color-danger) 22%,
+            var(--color-border));
+    border-radius: var(--radius-medium);
+    color        : var(--color-danger);
+    background   : var(--color-danger-soft);
+    font-size    : 12px;
+}
+
+.dashboard-page__spinner {
+    animation:
+        dashboard-spinner 800ms linear infinite;
+}
+
+@keyframes dashboard-spinner {
+    to {
+        transform: rotate(360deg);
     }
 }
 
-.api-debug-card__heading {
-    display        : flex;
-    align-items    : center;
-    justify-content: space-between;
-    gap            : 16px;
-
-    h2 {
-        margin   : 0 0 4px;
-        font-size: 17px;
+@include mixins.desktop {
+    .dashboard-page__weather-grid {
+        grid-template-columns:
+            minmax(0, 1.25fr) minmax(300px, 0.9fr);
     }
 
-    p {
-        margin   : 0;
-        color    : #64748b;
-        font-size: 12px;
-    }
-
-    >span {
-        padding      : 6px 10px;
-        border-radius: 999px;
-        color        : #166534;
-        background   : #dcfce7;
-        font-size    : 11px;
-        font-weight  : 700;
+    .dashboard-page__insights {
+        grid-template-columns:
+            minmax(0, 1.2fr) minmax(280px, 0.8fr);
     }
 }
 
-@media (max-width: 640px) {
+@include mixins.tablet {
+
+    .dashboard-page__weather-grid,
+    .dashboard-page__insights {
+        grid-template-columns: 1fr;
+    }
+}
+
+@include mixins.small-mobile {
     .dashboard-page {
-        padding: 16px;
+        gap: 14px;
     }
 
-    .dashboard-page__header {
-        h1 {
-            font-size: 25px;
-        }
-    }
-
-    .api-debug-card {
-        padding: 14px;
-    }
-
-    .api-debug-card__heading {
-        align-items   : flex-start;
-        flex-direction: column;
+    .dashboard-page__metrics {
+        grid-template-columns: 1fr;
     }
 }

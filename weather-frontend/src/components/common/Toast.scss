@@ -1,0 +1,118 @@
+@use '../../styles/mixins'as mixins;
+
+.app-toast {
+    position         : fixed;
+    z-index          : 2200;
+    top              : calc(var(--header-height) + 16px);
+    right            : 20px;
+    display          : flex;
+    width            : min(380px, calc(100vw - 32px));
+    min-height       : 58px;
+    align-items      : flex-start;
+    gap              : 11px;
+    padding          : 13px 12px 13px 14px;
+    border           : 1px solid var(--color-border);
+    border-left-width: 4px;
+    border-radius    : var(--radius-medium);
+    background       : var(--color-card-background);
+    box-shadow       : var(--shadow-dropdown);
+    animation        : toast-in 200ms ease;
+}
+
+.app-toast__icon {
+    display    : flex;
+    flex       : 0 0 auto;
+    padding-top: 1px;
+
+    svg {
+        width : 20px;
+        height: 20px;
+    }
+}
+
+.app-toast__message {
+    min-width  : 0;
+    flex       : 1 1 auto;
+    margin     : 0;
+    color      : var(--color-text-primary);
+    font-size  : 13px;
+    line-height: 1.5;
+}
+
+.app-toast__close {
+    @include mixins.button-reset;
+    @include mixins.flex-center;
+
+    width        : 28px;
+    height       : 28px;
+    flex         : 0 0 28px;
+    border-radius: 8px;
+    color        : var(--color-text-muted);
+
+    &:hover {
+        color     : var(--color-text-primary);
+        background: var(--color-hover-background);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+
+    svg {
+        width : 16px;
+        height: 16px;
+    }
+}
+
+.app-toast--success {
+    border-left-color: var(--color-success);
+
+    .app-toast__icon {
+        color: var(--color-success);
+    }
+}
+
+.app-toast--error {
+    border-left-color: var(--color-danger);
+
+    .app-toast__icon {
+        color: var(--color-danger);
+    }
+}
+
+.app-toast--warning {
+    border-left-color: var(--color-warning);
+
+    .app-toast__icon {
+        color: var(--color-warning);
+    }
+}
+
+.app-toast--info {
+    border-left-color: var(--color-info);
+
+    .app-toast__icon {
+        color: var(--color-info);
+    }
+}
+
+@keyframes toast-in {
+    from {
+        opacity  : 0;
+        transform: translateX(16px);
+    }
+
+    to {
+        opacity  : 1;
+        transform: translateX(0);
+    }
+}
+
+@include mixins.mobile {
+    .app-toast {
+        top  : calc(var(--header-height) + 12px);
+        right: 16px;
+        left : 16px;
+        width: auto;
+    }
+}

@@ -1,0 +1,108 @@
+@use '../../styles/mixins'as mixins;
+
+.analysis-page {
+    display: grid;
+    gap    : 18px;
+}
+
+.analysis-page .page-header {
+    margin-bottom: 0;
+}
+
+.analysis-page__tabs {
+    display      : flex;
+    align-items  : center;
+    gap          : 4px;
+    padding      : 5px;
+    overflow-x   : auto;
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background   : var(--color-card-background);
+
+    @include mixins.custom-scrollbar;
+}
+
+.analysis-page__tab {
+    @include mixins.button-reset;
+
+    min-height   : 38px;
+    flex         : 0 0 auto;
+    padding      : 0 15px;
+    border-radius: 9px;
+    color        : var(--color-text-secondary);
+    font-size    : 12px;
+    font-weight  : 700;
+    white-space  : nowrap;
+    transition   :
+        color var(--transition-fast),
+        background var(--transition-fast);
+
+    &:hover {
+        color     : var(--color-primary);
+        background: var(--color-primary-soft);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+}
+
+.analysis-page__tab--active {
+    color     : var(--color-text-inverse);
+    background: var(--color-primary);
+
+    &:hover {
+        color     : var(--color-text-inverse);
+        background: var(--color-primary-hover);
+    }
+}
+
+.analysis-page__content {
+    min-width: 0;
+}
+
+.analysis-page__overview {
+    display: grid;
+    gap    : 14px;
+}
+
+.analysis-page__metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.analysis-page__spinner {
+    animation:
+        analysis-spinner 800ms linear infinite;
+}
+
+@keyframes analysis-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@include mixins.desktop {
+    .analysis-page__metrics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@include mixins.mobile {
+    .analysis-page {
+        gap: 14px;
+    }
+
+    .analysis-page__tabs {
+        margin-inline: -2px;
+    }
+}
+
+@include mixins.small-mobile {
+    .analysis-page__metrics {
+        grid-template-columns: 1fr;
+    }
+}

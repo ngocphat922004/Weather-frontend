@@ -1,0 +1,81 @@
+@use '../../styles/mixins'as mixins;
+
+.page-header {
+    display        : flex;
+    align-items    : flex-start;
+    justify-content: space-between;
+    gap            : 24px;
+    margin-bottom  : 22px;
+}
+
+.page-header__content {
+    display    : flex;
+    min-width  : 0;
+    align-items: flex-start;
+    gap        : 13px;
+}
+
+.page-header__icon {
+    @include mixins.flex-center;
+
+    width        : 44px;
+    height       : 44px;
+    flex         : 0 0 44px;
+    border-radius: var(--radius-medium);
+    color        : var(--color-primary);
+    background   : var(--color-primary-soft);
+
+    svg {
+        width : 22px;
+        height: 22px;
+    }
+}
+
+.page-header__text {
+    min-width: 0;
+}
+
+.page-header__eyebrow {
+    display       : block;
+    margin-bottom : 3px;
+    color         : var(--color-primary);
+    font-size     : 11px;
+    font-weight   : 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.page-header__actions {
+    display        : flex;
+    flex           : 0 0 auto;
+    align-items    : center;
+    justify-content: flex-end;
+    gap            : 10px;
+}
+
+@include mixins.mobile {
+    .page-header {
+        flex-direction: column;
+        gap           : 16px;
+    }
+
+    .page-header__actions {
+        width          : 100%;
+        justify-content: flex-start;
+        overflow-x     : auto;
+        padding-bottom : 2px;
+
+        @include mixins.custom-scrollbar;
+    }
+
+    .page-header__icon {
+        width     : 40px;
+        height    : 40px;
+        flex-basis: 40px;
+
+        svg {
+            width : 20px;
+            height: 20px;
+        }
+    }
+}

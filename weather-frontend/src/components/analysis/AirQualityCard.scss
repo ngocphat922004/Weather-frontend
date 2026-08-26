@@ -1,0 +1,152 @@
+@use '../../styles/mixins'as mixins;
+
+.air-quality-card {
+    min-width: 0;
+    padding  : 20px;
+}
+
+.air-quality-card__header {
+    @include mixins.card-header;
+
+    margin-bottom: 20px;
+
+    h2 {
+        margin   : 4px 0 0;
+        font-size: 16px;
+    }
+}
+
+.air-quality-card__eyebrow {
+    display       : inline-flex;
+    align-items   : center;
+    gap           : 5px;
+    color         : var(--color-primary);
+    font-size     : 10px;
+    font-weight   : 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    svg {
+        width : 13px;
+        height: 13px;
+    }
+}
+
+.air-quality-card__content {
+    display: grid;
+    grid-template-columns:
+        minmax(220px, 0.75fr) minmax(0, 1.55fr);
+    gap: 24px;
+}
+
+.air-quality-card__overview {
+    @include mixins.flex-center;
+
+    min-width     : 0;
+    flex-direction: column;
+    padding       : 16px;
+    border-radius : var(--radius-medium);
+    background    : var(--color-hover-background);
+
+    >p {
+        max-width  : 260px;
+        margin     : 15px 0 0;
+        color      : var(--color-text-secondary);
+        font-size  : 11px;
+        line-height: 1.6;
+        text-align : center;
+    }
+}
+
+.air-quality-card__pollutants {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    align-content: start;
+    gap          : 12px;
+}
+
+.air-quality-card__pollutant {
+    display      : flex;
+    min-width    : 0;
+    min-height   : 92px;
+    align-items  : flex-start;
+    gap          : 10px;
+    padding      : 13px;
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background   : var(--color-card-background);
+
+    >div {
+        display  : grid;
+        min-width: 0;
+    }
+
+    span,
+    strong,
+    small {
+        @include mixins.text-ellipsis;
+    }
+
+    span {
+        color      : var(--color-text-secondary);
+        font-size  : 10px;
+        font-weight: 700;
+    }
+
+    strong {
+        margin-top: 5px;
+        color     : var(--color-text-primary);
+        font-size : 15px;
+    }
+
+    small {
+        margin-top: 3px;
+        color     : var(--color-text-muted);
+        font-size : 9px;
+    }
+}
+
+.air-quality-card__pollutant-icon {
+    @include mixins.flex-center;
+
+    width        : 30px;
+    height       : 30px;
+    flex         : 0 0 30px;
+    border-radius: 9px;
+    color        : var(--color-primary);
+    background   : var(--color-primary-soft);
+
+    svg {
+        width : 16px;
+        height: 16px;
+    }
+}
+
+.air-quality-card__empty {
+    display      : grid;
+    min-height   : 196px;
+    grid-column  : 1 / -1;
+    margin       : 0;
+    place-items  : center;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    background   : var(--color-hover-background);
+    font-size    : 12px;
+}
+
+@include mixins.tablet {
+    .air-quality-card__content {
+        grid-template-columns: 1fr;
+    }
+}
+
+@include mixins.small-mobile {
+    .air-quality-card {
+        padding: 16px;
+    }
+
+    .air-quality-card__pollutants {
+        grid-template-columns: 1fr;
+    }
+}

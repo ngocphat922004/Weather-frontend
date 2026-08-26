@@ -1,0 +1,134 @@
+@use '../../styles/mixins'as mixins;
+
+.weekly-forecast {
+    min-width: 0;
+    padding  : 18px;
+}
+
+.weekly-forecast__header {
+    margin-bottom: 14px;
+
+    h2 {
+        margin   : 0 0 3px;
+        font-size: 14px;
+    }
+
+    span {
+        color    : var(--color-text-muted);
+        font-size: 10px;
+    }
+}
+
+.weekly-forecast__list {
+    display: grid;
+    gap    : 4px;
+}
+
+.weekly-forecast__item {
+    display: grid;
+    grid-template-columns:
+        minmax(80px, 1.2fr) 34px minmax(50px, 0.7fr) minmax(72px, 0.9fr);
+    min-height   : 48px;
+    align-items  : center;
+    gap          : 10px;
+    padding      : 6px 9px;
+    border-radius: 10px;
+    transition   :
+        background var(--transition-fast);
+
+    &:hover {
+        background: var(--color-hover-background);
+    }
+
+    >svg {
+        width       : 23px;
+        height      : 23px;
+        color       : var(--color-primary);
+        stroke-width: 1.8;
+    }
+}
+
+.weekly-forecast__date {
+    display  : grid;
+    min-width: 0;
+
+    strong,
+    span {
+        @include mixins.text-ellipsis;
+    }
+
+    strong {
+        color    : var(--color-text-primary);
+        font-size: 11px;
+    }
+
+    span {
+        color    : var(--color-text-muted);
+        font-size: 9px;
+    }
+}
+
+.weekly-forecast__rain {
+    display    : flex;
+    align-items: center;
+    gap        : 3px;
+    color      : var(--color-info);
+    font-size  : 9px;
+    font-weight: 600;
+
+    svg {
+        width : 11px;
+        height: 11px;
+    }
+}
+
+.weekly-forecast__temperature {
+    display        : flex;
+    align-items    : center;
+    justify-content: flex-end;
+    gap            : 6px;
+    font-size      : 11px;
+
+    strong {
+        color: var(--color-text-primary);
+    }
+
+    span {
+        color: var(--color-text-muted);
+    }
+}
+
+.weekly-forecast__item--today {
+    background: var(--color-primary-soft);
+
+    .weekly-forecast__date strong,
+    >svg {
+        color: var(--color-primary);
+    }
+}
+
+.weekly-forecast__empty {
+    display      : grid;
+    min-height   : 180px;
+    margin       : 0;
+    place-items  : center;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    background   : var(--color-hover-background);
+    font-size    : 12px;
+}
+
+@include mixins.small-mobile {
+    .weekly-forecast {
+        padding: 15px;
+    }
+
+    .weekly-forecast__item {
+        grid-template-columns:
+            minmax(68px, 1fr) 28px minmax(62px, 0.8fr);
+    }
+
+    .weekly-forecast__rain {
+        display: none;
+    }
+}

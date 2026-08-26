@@ -1,39 +1,91 @@
+import {
+  AlertTriangle,
+  RefreshCw,
+} from 'lucide-react';
+
+import {
+  useState,
+} from 'react';
+
+import './ErrorState.scss';
+
 interface ErrorStateProps {
   title?: string;
   message: string;
-  onRetry?: () => void;
+  onRetry?: () => void | Promise<void>;
+  compact?: boolean;
 }
 
 function ErrorState({
   title = 'Không thể tải dữ liệu',
   message,
   onRetry,
+  compact = false,
 }: ErrorStateProps) {
+  const [isRetrying, setIsRetrying] =
+    useState(false);
+
+  const handleRetry = async () => {
+    if (!onRetry || isRetrying) {
+      return;
+    }
+
+    try {
+      setIsRetrying(true);
+      await onRetry();
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
   return (
     <section
-      className="weather-error"
+      className={[
+        'error-state',
+        compact
+          ? 'error-state--compact'
+          : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       role="alert"
     >
       <div
-        className="weather-error__icon"
+        className="error-state__icon"
         aria-hidden="true"
       >
-        !
+        <AlertTriangle />
       </div>
 
-      <div className="weather-error__content">
-        <h2>{title}</h2>
-        <p>{message}</p>
+      <h2>{title}</h2>
 
-        {onRetry && (
-          <button
-            type="button"
-            onClick={onRetry}
-          >
-            Thử lại
-          </button>
-        )}
-      </div>
+      <p>{message}</p>
+
+      {onRetry && (
+        <button
+          className="app-button app-button--primary"
+          type="button"
+          onClick={() => {
+            void handleRetry();
+          }}
+          disabled={isRetrying}
+        >
+          <RefreshCw
+            className={
+              isRetrying
+                ? 'error-state__spinner'
+                : ''
+            }
+            aria-hidden="true"
+          />
+
+          <span>
+            {isRetrying
+              ? 'Đang thử lại...'
+              : 'Thử lại'}
+          </span>
+        </button>
+      )}
     </section>
   );
 }

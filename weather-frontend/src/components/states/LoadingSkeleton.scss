@@ -1,0 +1,147 @@
+@use '../../styles/mixins'as mixins;
+
+.loading-skeleton {
+    display: grid;
+    width  : 100%;
+    gap    : 18px;
+    padding: 24px;
+}
+
+.loading-skeleton__heading {
+    display: grid;
+    gap    : 9px;
+}
+
+.loading-skeleton__cards {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.loading-skeleton__dashboard-grid {
+    display: grid;
+    grid-template-columns:
+        minmax(0, 1.55fr) minmax(280px, 0.85fr);
+    gap: 14px;
+}
+
+.loading-skeleton__metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.loading-skeleton__message {
+    margin    : 0;
+    color     : var(--color-text-muted);
+    font-size : 12px;
+    text-align: center;
+}
+
+.skeleton-block {
+    position     : relative;
+    display      : block;
+    overflow     : hidden;
+    border-radius: var(--radius-medium);
+    background   : var(--color-hover-background);
+
+    &::after {
+        position: absolute;
+        inset   : 0;
+        background:
+            linear-gradient(90deg,
+                transparent 0%,
+                rgb(255 255 255 / 46%) 50%,
+                transparent 100%);
+        content  : '';
+        transform: translateX(-100%);
+        animation:
+            skeleton-shimmer 1.35s infinite;
+    }
+}
+
+[data-theme='dark'] .skeleton-block {
+    &::after {
+        background:
+            linear-gradient(90deg,
+                transparent 0%,
+                rgb(255 255 255 / 7%) 50%,
+                transparent 100%);
+    }
+}
+
+.skeleton-block--title {
+    width : min(280px, 70%);
+    height: 29px;
+}
+
+.skeleton-block--subtitle {
+    width : min(190px, 48%);
+    height: 15px;
+}
+
+.skeleton-block--alert {
+    height: 74px;
+}
+
+.skeleton-block--weather {
+    height: 250px;
+}
+
+.skeleton-block--metric {
+    height: 118px;
+}
+
+.skeleton-block--card {
+    min-height: 126px;
+}
+
+.skeleton-block--chart {
+    min-height: 310px;
+}
+
+@keyframes skeleton-shimmer {
+    to {
+        transform: translateX(100%);
+    }
+}
+
+@include mixins.tablet {
+    .loading-skeleton {
+        padding: 20px;
+    }
+
+    .loading-skeleton__dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@include mixins.mobile {
+    .loading-skeleton {
+        gap    : 14px;
+        padding: 16px;
+    }
+
+    .loading-skeleton__cards {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .skeleton-block--chart {
+        min-height: 240px;
+    }
+}
+
+@include mixins.small-mobile {
+
+    .loading-skeleton__cards,
+    .loading-skeleton__metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .skeleton-block--weather {
+        height: 220px;
+    }
+}

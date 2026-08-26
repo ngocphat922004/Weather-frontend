@@ -1,0 +1,273 @@
+@use '../../styles/mixins'as mixins;
+
+.app-header {
+    position       : fixed;
+    z-index        : 900;
+    top            : 0;
+    right          : 0;
+    left           : var(--sidebar-width);
+    display        : flex;
+    height         : var(--header-height);
+    align-items    : center;
+    justify-content: space-between;
+    gap            : 24px;
+    padding        : 0 24px;
+    border-bottom  : 1px solid var(--color-border);
+    background     :
+        color-mix(in srgb,
+            var(--color-header-background) 94%,
+            transparent);
+    backdrop-filter: blur(14px);
+    transition     :
+        left var(--transition-base),
+        background var(--transition-base);
+}
+
+.app-header__left {
+    display    : flex;
+    min-width  : 0;
+    flex       : 1 1 auto;
+    align-items: center;
+    gap        : 12px;
+}
+
+.app-header__menu {
+    display: none;
+}
+
+.app-header__search {
+    position   : relative;
+    display    : flex;
+    width      : min(360px, 100%);
+    align-items: center;
+
+    >svg {
+        position      : absolute;
+        z-index       : 1;
+        left          : 14px;
+        width         : 17px;
+        height        : 17px;
+        color         : var(--color-text-muted);
+        pointer-events: none;
+    }
+
+    input {
+        height: 42px;
+        padding:
+            0 66px 0 42px;
+        border-color : transparent;
+        border-radius: var(--radius-pill);
+        background   : var(--color-hover-background);
+        font-size    : 13px;
+
+        &:focus {
+            border-color: var(--color-primary-border);
+            background  : var(--color-input-background);
+        }
+
+        &::-webkit-search-cancel-button {
+            cursor: pointer;
+        }
+    }
+
+    button {
+        @include mixins.button-reset;
+
+        position     : absolute;
+        right        : 5px;
+        min-width    : 54px;
+        height       : 32px;
+        padding      : 0 10px;
+        border-radius: var(--radius-pill);
+        color        : var(--color-text-inverse);
+        background   : var(--color-primary);
+        font-size    : 11px;
+        font-weight  : 700;
+
+        &:hover {
+            background: var(--color-primary-hover);
+        }
+
+        &:focus-visible {
+            @include mixins.focus-ring;
+        }
+    }
+}
+
+.app-header__actions {
+    display    : flex;
+    flex       : 0 0 auto;
+    align-items: center;
+    gap        : 6px;
+}
+
+.app-header__location {
+    display      : flex;
+    max-width    : 190px;
+    min-height   : 36px;
+    align-items  : center;
+    gap          : 7px;
+    margin-right : 4px;
+    padding      : 0 12px;
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    color        : var(--color-text-secondary);
+    background   : var(--color-card-background);
+    font-size    : 12px;
+    font-weight  : 600;
+
+    svg {
+        width : 15px;
+        height: 15px;
+        flex  : 0 0 15px;
+        color : var(--color-primary);
+    }
+
+    span {
+        @include mixins.text-ellipsis;
+    }
+}
+
+.app-header__notification {
+    position: relative;
+}
+
+.app-header__notification-dot {
+    position     : absolute;
+    top          : 8px;
+    right        : 8px;
+    width        : 7px;
+    height       : 7px;
+    border       : 2px solid var(--color-header-background);
+    border-radius: 50%;
+    background   : var(--color-danger);
+}
+
+.app-header__profile {
+    @include mixins.button-reset;
+
+    display      : flex;
+    min-width    : 0;
+    align-items  : center;
+    gap          : 10px;
+    margin-left  : 6px;
+    padding      : 4px;
+    border-radius: var(--radius-medium);
+
+    &:hover {
+        background: var(--color-hover-background);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+}
+
+.app-header__avatar {
+    @include mixins.flex-center;
+
+    width        : 38px;
+    height       : 38px;
+    flex         : 0 0 38px;
+    border       : 2px solid var(--color-primary-border);
+    border-radius: 50%;
+    color        : var(--color-primary);
+    background   : var(--color-primary-soft);
+    font-size    : 12px;
+    font-weight  : 800;
+}
+
+.app-header__profile-info {
+    display   : grid;
+    min-width : 0;
+    text-align: left;
+
+    strong,
+    small {
+        @include mixins.text-ellipsis;
+    }
+
+    strong {
+        color      : var(--color-text-primary);
+        font-size  : 12px;
+        font-weight: 700;
+    }
+
+    small {
+        color    : var(--color-text-muted);
+        font-size: 10px;
+    }
+}
+
+@include mixins.desktop {
+    .app-header__location {
+        max-width: 150px;
+    }
+
+    .app-header__profile-info {
+        display: none;
+    }
+}
+
+@include mixins.tablet {
+    .app-header {
+        left   : 0;
+        padding: 0 20px;
+    }
+
+    .app-header__menu {
+        display: flex;
+    }
+}
+
+@include mixins.mobile {
+    .app-header {
+        gap    : 10px;
+        padding: 0 14px;
+    }
+
+    .app-header__left {
+        gap: 6px;
+    }
+
+    .app-header__search {
+        input {
+            padding-right: 42px;
+        }
+
+        button {
+            width    : 32px;
+            min-width: 32px;
+            overflow : hidden;
+            color    : transparent;
+
+            &::after {
+                position   : absolute;
+                inset      : 0;
+                display    : grid;
+                place-items: center;
+                color      : var(--color-text-inverse);
+                content    : '→';
+                font-size  : 16px;
+            }
+        }
+    }
+
+    .app-header__location {
+        display: none;
+    }
+
+    .app-header__profile {
+        display: none;
+    }
+}
+
+@include mixins.small-mobile {
+    .app-header__actions {
+        gap: 0;
+    }
+
+    .app-header__actions .app-icon-button:first-of-type {
+        display: none;
+    }
+}

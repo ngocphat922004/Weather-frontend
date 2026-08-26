@@ -1,0 +1,91 @@
+@use '../../styles/mixins'as mixins;
+
+.history-page {
+    display: grid;
+    gap    : 18px;
+}
+
+.history-page .page-header {
+    margin-bottom: 0;
+}
+
+.history-page__filters {
+    display: grid;
+    grid-template-columns:
+        minmax(170px, 220px) minmax(170px, 220px) 1fr;
+    align-items: end;
+    gap        : 14px;
+    padding    : 18px;
+}
+
+.history-page__filters label {
+    display: grid;
+    gap    : 7px;
+}
+
+.history-page__filters label>span {
+    color      : var(--color-text-secondary);
+    font-size  : 12px;
+    font-weight: 700;
+}
+
+.history-page__actions {
+    display        : flex;
+    align-items    : center;
+    justify-content: flex-end;
+    gap            : 9px;
+}
+
+.history-page__metrics {
+    display: grid;
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.history-page__spinner {
+    animation:
+        history-spinner 800ms linear infinite;
+}
+
+@keyframes history-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@include mixins.tablet {
+    .history-page__filters {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .history-page__actions {
+        grid-column    : 1 / -1;
+        justify-content: flex-start;
+    }
+
+    .history-page__metrics {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@include mixins.small-mobile {
+    .history-page {
+        gap: 14px;
+    }
+
+    .history-page__filters,
+    .history-page__metrics {
+        grid-template-columns: 1fr;
+    }
+
+    .history-page__actions {
+        flex-direction: column;
+    }
+
+    .history-page__actions .app-button {
+        width: 100%;
+    }
+}

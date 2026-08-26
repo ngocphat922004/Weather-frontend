@@ -1,142 +1,325 @@
-.weather-loading {
-    display: grid;
-    gap    : 16px;
-    width  : 100%;
-    padding: 24px;
+@use './variables';
+@use './mixins'as mixins;
 
-    p {
-        margin    : 0;
-        color     : #64748b;
-        font-size : 14px;
-        text-align: center;
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    min-width      : 320px;
+    min-height     : 100%;
+    background     : var(--color-app-background);
+    font-size      : 16px;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-width              : 320px;
+    min-height             : 100vh;
+    margin                 : 0;
+    color                  : var(--color-text-primary);
+    background             : var(--color-app-background);
+    font-family            : var(--font-family);
+    font-size              : 14px;
+    line-height            : 1.5;
+    text-rendering         : optimizeLegibility;
+    -webkit-font-smoothing : antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body,
+button,
+input,
+select,
+textarea {
+    font-family: var(--font-family);
+}
+
+button,
+input,
+select,
+textarea {
+    font-size: inherit;
+}
+
+button {
+    color: inherit;
+}
+
+button,
+a,
+input,
+select,
+textarea {
+    -webkit-tap-highlight-color: transparent;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    cursor : not-allowed;
+    opacity: 0.6;
+}
+
+a {
+    color          : inherit;
+    text-decoration: none;
+}
+
+img,
+svg {
+    display: block;
+}
+
+img {
+    max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+    margin-top: 0;
+}
+
+h1,
+h2,
+h3,
+h4 {
+    color      : var(--color-text-primary);
+    font-weight: 700;
+}
+
+p {
+    color: var(--color-text-secondary);
+}
+
+input,
+select,
+textarea {
+    width        : 100%;
+    border       : 1px solid var(--color-border-strong);
+    border-radius: var(--radius-medium);
+    outline      : none;
+    color        : var(--color-text-primary);
+    background   : var(--color-input-background);
+    transition   :
+        border-color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        background var(--transition-fast);
+
+    &::placeholder {
+        color: var(--color-text-muted);
+    }
+
+    &:focus {
+        border-color: var(--color-primary);
+
+        @include mixins.focus-ring;
     }
 }
 
-.weather-loading__heading {
-    display: grid;
-    gap    : 8px;
+input,
+select {
+    min-height: 44px;
+    padding   : 0 14px;
 }
 
-.weather-loading__metrics {
-    display              : grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap                  : 14px;
+textarea {
+    min-height: 110px;
+    padding   : 12px 14px;
+    resize    : vertical;
 }
 
-.skeleton {
-    display      : block;
-    border-radius: 12px;
-    background   : linear-gradient(90deg,
-            #eef0f5 25%,
-            #f8f9fc 50%,
-            #eef0f5 75%);
-    background-size: 200% 100%;
-    animation      : weather-skeleton 1.4s infinite;
+#root {
+    min-height: 100vh;
 }
 
-.skeleton--title {
-    width : 260px;
-    height: 30px;
+.app-card {
+    @include mixins.card;
 }
 
-.skeleton--subtitle {
-    width : 160px;
-    height: 16px;
+.app-button {
+    @include mixins.inline-center;
+
+    min-height   : 42px;
+    gap          : 8px;
+    padding      : 0 16px;
+    border       : 1px solid transparent;
+    border-radius: var(--radius-medium);
+    font-weight  : 600;
+    white-space  : nowrap;
+    cursor       : pointer;
+    transition   :
+        color var(--transition-fast),
+        border-color var(--transition-fast),
+        background var(--transition-fast),
+        transform var(--transition-fast);
+
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+
+    svg {
+        width : 18px;
+        height: 18px;
+        flex  : 0 0 auto;
+    }
 }
 
-.skeleton--alert {
-    height: 78px;
+.app-button--primary {
+    color     : var(--color-text-inverse);
+    background: var(--color-primary);
+
+    &:hover:not(:disabled) {
+        background: var(--color-primary-hover);
+    }
 }
 
-.skeleton--current {
-    height: 260px;
+.app-button--secondary {
+    border-color: var(--color-border-strong);
+    color       : var(--color-text-primary);
+    background  : var(--color-card-background);
+
+    &:hover:not(:disabled) {
+        border-color: var(--color-primary-border);
+        color       : var(--color-primary);
+        background  : var(--color-primary-soft);
+    }
 }
 
-.skeleton--forecast {
-    height: 150px;
+.app-icon-button {
+    @include mixins.button-reset;
+    @include mixins.flex-center;
+
+    width        : 40px;
+    height       : 40px;
+    flex         : 0 0 40px;
+    border       : 1px solid transparent;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-secondary);
+    transition   :
+        color var(--transition-fast),
+        border-color var(--transition-fast),
+        background var(--transition-fast);
+
+    &:hover {
+        color     : var(--color-primary);
+        background: var(--color-primary-soft);
+    }
+
+    &:focus-visible {
+        @include mixins.focus-ring;
+    }
+
+    svg {
+        width : 20px;
+        height: 20px;
+    }
 }
 
-.skeleton--metric {
-    height: 120px;
+.page-container {
+    width    : 100%;
+    max-width: 1600px;
+    margin   : 0 auto;
+    padding  : 24px;
 }
 
-.weather-error {
-    display      : flex;
-    align-items  : flex-start;
-    gap          : 16px;
-    margin       : 24px;
-    padding      : 20px;
-    border       : 1px solid #fecaca;
-    border-radius: 14px;
-    background   : #fff7f7;
+.page-title {
+    margin-bottom : 4px;
+    font-size     : 28px;
+    line-height   : 1.25;
+    letter-spacing: -0.02em;
 }
 
-.weather-error__icon {
-    display      : grid;
-    width        : 42px;
-    height       : 42px;
-    flex         : 0 0 42px;
-    place-items  : center;
-    border-radius: 50%;
-    color        : #fff;
-    background   : #dc2626;
-    font-size    : 22px;
+.page-description {
+    margin-bottom: 0;
+    color        : var(--color-text-secondary);
+    font-size    : 14px;
+}
+
+.status-badge {
+    display      : inline-flex;
+    align-items  : center;
+    min-height   : 26px;
+    padding      : 0 10px;
+    border-radius: var(--radius-pill);
+    font-size    : 12px;
     font-weight  : 700;
 }
 
-.weather-error__content {
-    h2 {
-        margin   : 0 0 6px;
-        color    : #991b1b;
-        font-size: 18px;
+.status-badge--success {
+    color     : var(--color-success);
+    background: var(--color-success-soft);
+}
+
+.status-badge--warning {
+    color     : var(--color-warning);
+    background: var(--color-warning-soft);
+}
+
+.status-badge--danger {
+    color     : var(--color-danger);
+    background: var(--color-danger-soft);
+}
+
+.status-badge--info {
+    color     : var(--color-info);
+    background: var(--color-info-soft);
+}
+
+.visually-hidden {
+    position   : absolute;
+    width      : 1px;
+    height     : 1px;
+    padding    : 0;
+    overflow   : hidden;
+    border     : 0;
+    clip       : rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+@include mixins.tablet {
+    .page-container {
+        padding: 20px;
     }
 
-    p {
-        margin     : 0;
-        color      : #7f1d1d;
-        font-size  : 14px;
-        line-height: 1.5;
-    }
-
-    button {
-        min-height   : 40px;
-        margin-top   : 14px;
-        padding      : 0 18px;
-        border       : 0;
-        border-radius: 9px;
-        color        : #fff;
-        background   : #dc2626;
-        font         : inherit;
-        font-size    : 14px;
-        font-weight  : 600;
-        cursor       : pointer;
-
-        &:hover {
-            background: #b91c1c;
-        }
+    .page-title {
+        font-size: 25px;
     }
 }
 
-@keyframes weather-skeleton {
-    from {
-        background-position: 200% 0;
-    }
-
-    to {
-        background-position: -200% 0;
-    }
-}
-
-@media (max-width: 768px) {
-    .weather-loading {
+@include mixins.mobile {
+    .page-container {
         padding: 16px;
     }
 
-    .weather-loading__metrics {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+    .page-title {
+        font-size: 23px;
     }
 
-    .weather-error {
-        margin: 16px;
+    .app-button {
+        min-height    : 40px;
+        padding-inline: 14px;
+    }
+}
+
+@include mixins.reduced-motion {
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior          : auto !important;
+        transition-duration      : 0.01ms !important;
+        animation-duration       : 0.01ms !important;
+        animation-iteration-count: 1 !important;
     }
 }

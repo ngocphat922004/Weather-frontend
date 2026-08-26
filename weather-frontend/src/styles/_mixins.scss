@@ -1,0 +1,107 @@
+@use './variables'as variables;
+
+@mixin card {
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-large);
+    background   : var(--color-card-background);
+    box-shadow   : var(--shadow-card);
+}
+
+@mixin card-header {
+    display        : flex;
+    align-items    : center;
+    justify-content: space-between;
+    gap            : 16px;
+}
+
+@mixin flex-center {
+    display        : flex;
+    align-items    : center;
+    justify-content: center;
+}
+
+@mixin inline-center {
+    display        : inline-flex;
+    align-items    : center;
+    justify-content: center;
+}
+
+@mixin button-reset {
+    padding   : 0;
+    border    : 0;
+    color     : inherit;
+    background: transparent;
+    font      : inherit;
+    cursor    : pointer;
+}
+
+@mixin focus-ring {
+    outline: none;
+    box-shadow:
+        0 0 0 3px rgb(49 87 223 / 18%);
+}
+
+@mixin text-ellipsis {
+    overflow     : hidden;
+    text-overflow: ellipsis;
+    white-space  : nowrap;
+}
+
+@mixin line-clamp($lines: 2) {
+    display           : -webkit-box;
+    overflow          : hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    line-clamp        : $lines;
+}
+
+@mixin custom-scrollbar {
+    scrollbar-color:
+        var(--color-border-strong) transparent;
+
+    scrollbar-width: thin;
+
+    &::-webkit-scrollbar {
+        width : 6px;
+        height: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+        border-radius: var(--radius-pill);
+        background   : var(--color-border-strong);
+    }
+}
+
+@mixin desktop {
+    @media (max-width: variables.$breakpoint-desktop) {
+        @content;
+    }
+}
+
+@mixin tablet {
+    @media (max-width: variables.$breakpoint-tablet) {
+        @content;
+    }
+}
+
+@mixin mobile {
+    @media (max-width: variables.$breakpoint-mobile) {
+        @content;
+    }
+}
+
+@mixin small-mobile {
+    @media (max-width: variables.$breakpoint-small) {
+        @content;
+    }
+}
+
+@mixin reduced-motion {
+    @media (prefers-reduced-motion: reduce) {
+        @content;
+    }
+}

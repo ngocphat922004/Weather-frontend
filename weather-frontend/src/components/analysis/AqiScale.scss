@@ -1,0 +1,101 @@
+@use '../../styles/mixins'as mixins;
+
+.aqi-scale {
+    --aqi-color     : var(--color-aqi-good);
+    --aqi-progress  : 0deg;
+    --aqi-size      : 150px;
+    --aqi-ring-width: 13px;
+
+    display       : inline-flex;
+    align-items   : center;
+    flex-direction: column;
+}
+
+.aqi-scale__ring {
+    position: relative;
+    @include mixins.flex-center;
+
+    width        : var(--aqi-size);
+    height       : var(--aqi-size);
+    border-radius: 50%;
+    background   :
+        conic-gradient(var(--aqi-color) 0deg var(--aqi-progress),
+            var(--color-hover-background) var(--aqi-progress) 360deg);
+
+    &::before {
+        position     : absolute;
+        inset        : var(--aqi-ring-width);
+        border-radius: 50%;
+        background   : var(--color-card-background);
+        content      : '';
+    }
+}
+
+.aqi-scale__center {
+    position  : relative;
+    z-index   : 1;
+    display   : grid;
+    text-align: center;
+
+    strong {
+        color         : var(--color-text-primary);
+        font-size     : calc(var(--aqi-size) * 0.22);
+        font-weight   : 800;
+        line-height   : 1;
+        letter-spacing: -0.04em;
+    }
+
+    span {
+        margin-top : 5px;
+        color      : var(--aqi-color);
+        font-size  : calc(var(--aqi-size) * 0.075);
+        font-weight: 700;
+    }
+}
+
+.aqi-scale__label {
+    margin     : 10px 0 0;
+    color      : var(--color-text-secondary);
+    font-size  : 11px;
+    font-weight: 600;
+    text-align : center;
+}
+
+.aqi-scale--small {
+    --aqi-size      : 92px;
+    --aqi-ring-width: 9px;
+}
+
+.aqi-scale--medium {
+    --aqi-size      : 150px;
+    --aqi-ring-width: 13px;
+}
+
+.aqi-scale--large {
+    --aqi-size      : 190px;
+    --aqi-ring-width: 16px;
+}
+
+.aqi-scale--good {
+    --aqi-color: #22c55e;
+}
+
+.aqi-scale--moderate {
+    --aqi-color: #eab308;
+}
+
+.aqi-scale--sensitive {
+    --aqi-color: #f97316;
+}
+
+.aqi-scale--unhealthy {
+    --aqi-color: #ef4444;
+}
+
+.aqi-scale--very-unhealthy {
+    --aqi-color: #9333ea;
+}
+
+.aqi-scale--hazardous {
+    --aqi-color: #881337;
+}

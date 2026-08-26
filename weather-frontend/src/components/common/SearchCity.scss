@@ -1,0 +1,43 @@
+@use '../../styles/mixins'as mixins;
+
+.search-city {
+    display    : flex;
+    width      : 100%;
+    align-items: center;
+    gap        : 10px;
+}
+
+.search-city__field {
+    position : relative;
+    min-width: 0;
+    flex     : 1 1 auto;
+
+    >svg {
+        position      : absolute;
+        z-index       : 1;
+        top           : 50%;
+        left          : 14px;
+        width         : 18px;
+        height        : 18px;
+        color         : var(--color-text-muted);
+        pointer-events: none;
+        transform     : translateY(-50%);
+    }
+
+    input {
+        height      : 44px;
+        padding-left: 42px;
+        font-size   : 13px;
+    }
+}
+
+@include mixins.small-mobile {
+    .search-city {
+        align-items   : stretch;
+        flex-direction: column;
+    }
+
+    .search-city .app-button {
+        width: 100%;
+    }
+}

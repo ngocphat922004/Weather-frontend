@@ -1,0 +1,130 @@
+@use '../../styles/mixins'as mixins;
+
+.agriculture-recommendation {
+    min-width: 0;
+    padding  : 18px;
+}
+
+.agriculture-recommendation__header {
+    @include mixins.card-header;
+
+    margin-bottom: 15px;
+
+    h2 {
+        margin   : 4px 0 3px;
+        font-size: 14px;
+    }
+
+    p {
+        margin   : 0;
+        color    : var(--color-text-muted);
+        font-size: 10px;
+    }
+}
+
+.agriculture-recommendation__eyebrow {
+    display       : inline-flex;
+    align-items   : center;
+    gap           : 5px;
+    color         : var(--color-success);
+    font-size     : 9px;
+    font-weight   : 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    svg {
+        width : 12px;
+        height: 12px;
+    }
+}
+
+.agriculture-recommendation__grid {
+    display: grid;
+    grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.agriculture-recommendation__item {
+    display      : flex;
+    min-width    : 0;
+    align-items  : flex-start;
+    gap          : 11px;
+    padding      : 13px;
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background   :
+        linear-gradient(135deg,
+            var(--color-card-background),
+            var(--color-success-soft));
+
+    >div {
+        min-width: 0;
+    }
+
+    h3 {
+        margin   : 0 0 4px;
+        font-size: 11px;
+    }
+
+    p {
+        @include mixins.line-clamp(3);
+
+        margin     : 0;
+        color      : var(--color-text-secondary);
+        font-size  : 10px;
+        line-height: 1.55;
+    }
+}
+
+.agriculture-recommendation__icon {
+    @include mixins.flex-center;
+
+    width        : 35px;
+    height       : 35px;
+    flex         : 0 0 35px;
+    border-radius: 10px;
+    color        : var(--color-success);
+    background   :
+        color-mix(in srgb,
+            var(--color-success) 12%,
+            var(--color-card-background));
+
+    svg {
+        width : 18px;
+        height: 18px;
+    }
+}
+
+.agriculture-recommendation__item--warning {
+    border-color:
+        color-mix(in srgb,
+            var(--color-warning) 25%,
+            var(--color-border));
+    background: var(--color-warning-soft);
+
+    .agriculture-recommendation__icon {
+        color: var(--color-warning);
+        background:
+            color-mix(in srgb,
+                var(--color-warning) 12%,
+                transparent);
+    }
+}
+
+.agriculture-recommendation__empty {
+    display      : grid;
+    min-height   : 150px;
+    margin       : 0;
+    place-items  : center;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    background   : var(--color-hover-background);
+    font-size    : 12px;
+}
+
+@include mixins.small-mobile {
+    .agriculture-recommendation__grid {
+        grid-template-columns: 1fr;
+    }
+}

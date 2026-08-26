@@ -1,0 +1,100 @@
+@use '../../styles/mixins'as mixins;
+
+.lifestyle-recommendation {
+    min-width: 0;
+    padding  : 18px;
+}
+
+.lifestyle-recommendation__header {
+    @include mixins.card-header;
+
+    margin-bottom: 14px;
+
+    h2 {
+        margin   : 0 0 3px;
+        font-size: 14px;
+    }
+
+    p {
+        margin   : 0;
+        color    : var(--color-text-muted);
+        font-size: 10px;
+    }
+}
+
+.lifestyle-recommendation__list {
+    display: grid;
+    gap    : 10px;
+}
+
+.lifestyle-recommendation__item {
+    display      : flex;
+    min-width    : 0;
+    align-items  : flex-start;
+    gap          : 11px;
+    padding      : 12px;
+    border       : 1px solid var(--color-border);
+    border-radius: var(--radius-medium);
+    background   : var(--color-card-background);
+
+    >div {
+        min-width: 0;
+    }
+
+    h3 {
+        margin   : 0 0 3px;
+        font-size: 11px;
+    }
+
+    p {
+        @include mixins.line-clamp(3);
+
+        margin     : 0;
+        color      : var(--color-text-secondary);
+        font-size  : 10px;
+        line-height: 1.55;
+    }
+}
+
+.lifestyle-recommendation__icon {
+    @include mixins.flex-center;
+
+    width        : 34px;
+    height       : 34px;
+    flex         : 0 0 34px;
+    border-radius: 10px;
+    color        : var(--color-primary);
+    background   : var(--color-primary-soft);
+
+    svg {
+        width : 18px;
+        height: 18px;
+    }
+}
+
+.lifestyle-recommendation__item--important {
+    border-color:
+        color-mix(in srgb,
+            var(--color-warning) 25%,
+            var(--color-border));
+    background: var(--color-warning-soft);
+
+    .lifestyle-recommendation__icon {
+        color: var(--color-warning);
+        background:
+            color-mix(in srgb,
+                var(--color-warning) 12%,
+                transparent);
+    }
+}
+
+.lifestyle-recommendation__empty {
+    display      : grid;
+    min-height   : 150px;
+    margin       : 0;
+    place-items  : center;
+    border-radius: var(--radius-medium);
+    color        : var(--color-text-muted);
+    background   : var(--color-hover-background);
+    font-size    : 12px;
+}

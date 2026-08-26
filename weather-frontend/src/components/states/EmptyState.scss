@@ -1,0 +1,67 @@
+@use '../../styles/mixins'as mixins;
+
+.empty-state {
+    @include mixins.flex-center;
+
+    min-height    : 320px;
+    flex-direction: column;
+    padding       : 40px 24px;
+    text-align    : center;
+
+    h2 {
+        margin   : 16px 0 7px;
+        font-size: 19px;
+    }
+
+    p {
+        max-width  : 440px;
+        margin     : 0;
+        color      : var(--color-text-secondary);
+        font-size  : 13px;
+        line-height: 1.6;
+    }
+
+    .app-button {
+        margin-top: 20px;
+    }
+}
+
+.empty-state__icon {
+    @include mixins.flex-center;
+
+    width        : 68px;
+    height       : 68px;
+    border-radius: 20px;
+    color        : var(--color-primary);
+    background   : var(--color-primary-soft);
+
+    svg {
+        width : 32px;
+        height: 32px;
+    }
+}
+
+.empty-state--compact {
+    min-height: 200px;
+    padding   : 28px 18px;
+
+    .empty-state__icon {
+        width        : 54px;
+        height       : 54px;
+        border-radius: 16px;
+
+        svg {
+            width : 26px;
+            height: 26px;
+        }
+    }
+
+    h2 {
+        margin-top: 13px;
+        font-size : 16px;
+    }
+
+    p {
+        font-size: 12px;
+    }
+}

@@ -1,17 +1,9 @@
 import {
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
-
-import weatherService from '../services/weatherService';
-
-import type {
-  CurrentWeatherApiResponse,
-  Weather15DaysApiResponse,
-} from '../types/weather';
 
 import {
   WeatherContext,
@@ -24,121 +16,76 @@ interface WeatherProviderProps {
 
 const DEFAULT_CITY = 'Ho Chi Minh City';
 
+const CITY_STORAGE_KEY =
+  'weather:selected-city';
+
+function getInitialCity(): string {
+  try {
+    const savedCity = window.localStorage
+      .getItem(CITY_STORAGE_KEY)
+      ?.trim();
+
+    return savedCity || DEFAULT_CITY;
+  } catch {
+    return DEFAULT_CITY;
+  }
+}
+
 export function WeatherProvider({
   children,
 }: WeatherProviderProps) {
-  const [city, setCity] =
-    useState<string>(DEFAULT_CITY);
-
-  const [currentWeather, setCurrentWeather] =
-    useState<CurrentWeatherApiResponse | null>(
-      null,
-    );
-
-  const [weather15Days, setWeather15Days] =
-    useState<Weather15DaysApiResponse | null>(
-      null,
-    );
-
-  const [loading, setLoading] =
-    useState<boolean>(true);
-
-  const [error, setError] =
-    useState<string | null>(null);
-
-  const loadWeather = useCallback(
-    async (selectedCity: string) => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [
-          currentWeatherResponse,
-          weather15DaysResponse,
-        ] = await Promise.all([
-          weatherService.getCurrentWeather(
-            selectedCity,
-          ),
-
-          weatherService.getWeather15Days(
-            selectedCity,
-          ),
-        ]);
-
-        setCurrentWeather(
-          currentWeatherResponse,
-        );
-
-        setWeather15Days(
-          weather15DaysResponse,
-        );
-      } catch (requestError: unknown) {
-        const message =
-          requestError instanceof Error
-            ? requestError.message
-            : 'Không thể tải dữ liệu thời tiết.';
-
-        setError(message);
-        setCurrentWeather(null);
-        setWeather15Days(null);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
+  const [city, setCity] = useState<string>(
+    getInitialCity,
   );
-
-  useEffect(() => {
-    const timeoutId = window.setTimeout(() => {
-      void loadWeather(city);
-    }, 0);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-    };
-  }, [city, loadWeather]);
 
   const changeCity = useCallback(
     (newCity: string) => {
-      const normalizedCity = newCity.trim();
+      const normalizedCity = newCity
+        .trim()
+        .replace(/\s+/g, ' ');
 
-      if (
-        !normalizedCity ||
-        normalizedCity === city
-      ) {
+      if (!normalizedCity) {
         return;
       }
 
-      setCity(normalizedCity);
-    },
-    [city],
-  );
+      /*
+       * Không cập nhật state nếu người dùng submit lại
+       * đúng thành phố hiện tại.
+       */
+      setCity((currentCity) => {
+        const isSameCity =
+          currentCity.toLocaleLowerCase() ===
+          normalizedCity.toLocaleLowerCase();
 
-  const refreshWeather =
-    useCallback(async () => {
-      await loadWeather(city);
-    }, [city, loadWeather]);
+        if (isSameCity) {
+          return currentCity;
+        }
+
+        try {
+          window.localStorage.setItem(
+            CITY_STORAGE_KEY,
+            normalizedCity,
+          );
+        } catch {
+          /*
+           * Ứng dụng vẫn hoạt động nếu trình duyệt
+           * không cho phép localStorage.
+           */
+        }
+
+        return normalizedCity;
+      });
+    },
+    [],
+  );
 
   const contextValue =
     useMemo<WeatherContextValue>(
       () => ({
         city,
-        currentWeather,
-        weather15Days,
-        loading,
-        error,
         changeCity,
-        refreshWeather,
       }),
-      [
-        city,
-        currentWeather,
-        weather15Days,
-        loading,
-        error,
-        changeCity,
-        refreshWeather,
-      ],
+      [city, changeCity],
     );
 
   return (

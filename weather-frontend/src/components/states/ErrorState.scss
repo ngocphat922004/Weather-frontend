@@ -1,0 +1,78 @@
+@use '../../styles/mixins'as mixins;
+
+.error-state {
+    @include mixins.flex-center;
+
+    min-height    : 320px;
+    flex-direction: column;
+    padding       : 40px 24px;
+    text-align    : center;
+
+    h2 {
+        margin   : 17px 0 7px;
+        color    : var(--color-text-primary);
+        font-size: 19px;
+    }
+
+    p {
+        max-width  : 500px;
+        margin     : 0;
+        color      : var(--color-text-secondary);
+        font-size  : 13px;
+        line-height: 1.65;
+    }
+
+    .app-button {
+        margin-top: 20px;
+    }
+}
+
+.error-state__icon {
+    @include mixins.flex-center;
+
+    width        : 68px;
+    height       : 68px;
+    border-radius: 20px;
+    color        : var(--color-danger);
+    background   : var(--color-danger-soft);
+
+    svg {
+        width : 32px;
+        height: 32px;
+    }
+}
+
+.error-state--compact {
+    min-height: 210px;
+    padding   : 28px 18px;
+
+    .error-state__icon {
+        width        : 54px;
+        height       : 54px;
+        border-radius: 16px;
+
+        svg {
+            width : 26px;
+            height: 26px;
+        }
+    }
+
+    h2 {
+        margin-top: 13px;
+        font-size : 16px;
+    }
+
+    p {
+        font-size: 12px;
+    }
+}
+
+.error-state__spinner {
+    animation: error-spinner 800ms linear infinite;
+}
+
+@keyframes error-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}

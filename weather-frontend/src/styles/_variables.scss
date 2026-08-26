@@ -1,0 +1,123 @@
+$sidebar-width          : 228px;
+$sidebar-collapsed-width: 78px;
+$header-height          : 70px;
+
+$breakpoint-desktop: 1200px;
+$breakpoint-tablet : 992px;
+$breakpoint-mobile : 768px;
+$breakpoint-small  : 576px;
+
+$transition-fast: 160ms ease;
+$transition-base: 240ms ease;
+
+:root {
+    /* Màu thương hiệu */
+    --color-primary       : #3157df;
+    --color-primary-hover : #2748c5;
+    --color-primary-soft  : #eef2ff;
+    --color-primary-border: #cfd8ff;
+
+    /* Nền */
+    --color-app-background    : #f7f8fd;
+    --color-sidebar-background: #ffffff;
+    --color-header-background : #ffffff;
+    --color-card-background   : #ffffff;
+    --color-input-background  : #ffffff;
+    --color-hover-background  : #f4f6fc;
+
+    /* Văn bản */
+    --color-text-primary  : #172033;
+    --color-text-secondary: #64748b;
+    --color-text-muted    : #94a3b8;
+    --color-text-inverse  : #ffffff;
+
+    /* Viền */
+    --color-border       : #e7eaf2;
+    --color-border-strong: #d8deea;
+
+    /* Trạng thái */
+    --color-success     : #16a34a;
+    --color-success-soft: #ecfdf3;
+
+    --color-warning     : #d97706;
+    --color-warning-soft: #fff7e8;
+
+    --color-danger     : #dc2626;
+    --color-danger-soft: #fff1f2;
+
+    --color-info     : #0284c7;
+    --color-info-soft: #eff8ff;
+
+    /* Thời tiết */
+    --color-temperature: #f97316;
+    --color-rain       : #38bdf8;
+    --color-humidity   : #0891b2;
+    --color-wind       : #6366f1;
+    --color-sun        : #f59e0b;
+    --color-aqi-good   : #22c55e;
+    --color-aqi-medium : #f59e0b;
+    --color-aqi-bad    : #dc2626;
+
+    /* Kích thước */
+    --sidebar-width: #{$sidebar-width};
+    --header-height: #{$header-height};
+
+    /* Bo góc */
+    --radius-small : 8px;
+    --radius-medium: 12px;
+    --radius-large : 16px;
+    --radius-pill  : 999px;
+
+    /* Bóng đổ */
+    --shadow-card:
+        0 4px 18px rgb(15 23 42 / 5%);
+
+    --shadow-dropdown:
+        0 14px 36px rgb(15 23 42 / 14%);
+
+    /* Font */
+    --font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif;
+
+    /* Hiệu ứng */
+    --transition-fast: #{$transition-fast};
+    --transition-base: #{$transition-base};
+}
+
+[data-theme='dark'] {
+    --color-primary       : #7893ff;
+    --color-primary-hover : #91a7ff;
+    --color-primary-soft  : #202a4f;
+    --color-primary-border: #35436f;
+
+    --color-app-background    : #10131c;
+    --color-sidebar-background: #171b27;
+    --color-header-background : #171b27;
+    --color-card-background   : #171b27;
+    --color-input-background  : #202532;
+    --color-hover-background  : #222838;
+
+    --color-text-primary  : #f1f5f9;
+    --color-text-secondary: #aeb8c8;
+    --color-text-muted    : #7f8ba0;
+    --color-text-inverse  : #ffffff;
+
+    --color-border       : #293142;
+    --color-border-strong: #374155;
+
+    --color-success-soft: #123522;
+    --color-warning-soft: #3c2b13;
+    --color-danger-soft : #401d25;
+    --color-info-soft   : #152f40;
+
+    --shadow-card:
+        0 6px 22px rgb(0 0 0 / 18%);
+
+    --shadow-dropdown:
+        0 16px 40px rgb(0 0 0 / 38%);
+}
