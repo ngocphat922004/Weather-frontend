@@ -12,24 +12,22 @@ import {
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type FormEvent,
 } from 'react';
 
 import PageHeader from '../../components/common/PageHeader';
-
 import ErrorState from '../../components/states/ErrorState';
 import LoadingSkeleton from '../../components/states/LoadingSkeleton';
-
 import WeatherMetricCard from '../../components/weather/WeatherMetricCard';
-
 import { useWeather } from '../../hooks/useWeather';
-
 import weatherService from '../../services/weatherService';
 
 import type {
-  WeatherAnalysisSummaryResponse,
+  Weather15DaysApiResponse,
+  WeatherDailyItem,
 } from '../../types/weather';
 
 import {
@@ -37,8 +35,6 @@ import {
   formatPercentage,
   formatRainfall,
   formatTemperature,
-  getFirstValue,
-  toNumber,
 } from '../../utils/formatters';
 
 import './HistoryPage.scss';
@@ -48,9 +44,7 @@ interface DateRange {
   to: string;
 }
 
-function toInputDate(
-  date: Date,
-): string {
+function toInputDate(date: Date): string {
   const year = date.getFullYear();
 
   const month = String(
@@ -68,9 +62,7 @@ function getDefaultRange(): DateRange {
   const to = new Date();
   const from = new Date();
 
-  from.setDate(
-    from.getDate() - 6,
-  );
+  from.setDate(from.getDate() - 6);
 
   return {
     from: toInputDate(from),
@@ -78,35 +70,60 @@ function getDefaultRange(): DateRange {
   };
 }
 
-function readNumber(
-  source: unknown,
-  paths: string[],
+function average(
+  values: number[],
 ): number | undefined {
-  const value = toNumber(
-    getFirstValue(source, paths),
-    Number.NaN,
+  if (values.length === 0) {
+    return undefined;
+  }
+
+  return (
+    values.reduce(
+      (total, value) => total + value,
+      0,
+    ) / values.length
+  );
+}
+
+function getDailyAverageTemperature(
+  item: WeatherDailyItem,
+): number | undefined {
+  const values = [
+    item.temperature.max,
+    item.temperature.min,
+  ].filter(
+    (value): value is number =>
+      value !== null,
   );
 
-  return Number.isNaN(value)
-    ? undefined
-    : value;
+  return average(values);
+}
+
+function getRainfall(
+  item: WeatherDailyItem,
+): number | undefined {
+  if (item.rain !== null) {
+    return item.rain;
+  }
+
+  if (item.precipitation !== null) {
+    return item.precipitation;
+  }
+
+  return undefined;
 }
 
 function HistoryPage() {
   const { city } = useWeather();
 
   const [range, setRange] =
-    useState<DateRange>(
-      getDefaultRange,
-    );
+    useState<DateRange>(getDefaultRange);
 
-  const [
-    formVersion,
-    setFormVersion,
-  ] = useState(0);
+  const [formVersion, setFormVersion] =
+    useState(0);
 
   const [data, setData] =
-    useState<WeatherAnalysisSummaryResponse | null>(
+    useState<Weather15DaysApiResponse | null>(
       null,
     );
 
@@ -128,11 +145,10 @@ function HistoryPage() {
         setError(null);
 
         const response =
-          await weatherService
-            .getAnalysisSummary(
-              city,
-              forceRefresh,
-            );
+          await weatherService.getWeather15Days(
+            city,
+            forceRefresh,
+          );
 
         if (
           requestId !==
@@ -181,6 +197,88 @@ function HistoryPage() {
     };
   }, [loadHistory]);
 
+  const historyItems = useMemo(() => {
+    if (!data) {
+      return [];
+    }
+
+    const historyLength =
+      data.period.past_days +
+      data.period.today;
+
+    return data.daily.slice(
+      0,
+      historyLength,
+    );
+  }, [data]);
+
+  const selectedItems = useMemo(
+    () =>
+      historyItems.filter(
+        (item) =>
+          item.date >= range.from &&
+          item.date <= range.to,
+      ),
+    [historyItems, range],
+  );
+
+  const availableFrom =
+    historyItems[0]?.date;
+
+  const availableTo =
+    historyItems[
+      historyItems.length - 1
+    ]?.date;
+
+  const temperature = average(
+    selectedItems
+      .map(getDailyAverageTemperature)
+      .filter(
+        (value): value is number =>
+          value !== undefined,
+      ),
+  );
+
+  const maximumTemperature =
+    selectedItems
+      .map((item) => item.temperature.max)
+      .filter(
+        (value): value is number =>
+          value !== null,
+      )
+      .reduce<number | undefined>(
+        (maximum, value) =>
+          maximum === undefined
+            ? value
+            : Math.max(maximum, value),
+        undefined,
+      );
+
+  const rainfallValues = selectedItems
+    .map(getRainfall)
+    .filter(
+      (value): value is number =>
+        value !== undefined,
+    );
+
+  const rainfall =
+    rainfallValues.length === 0
+      ? undefined
+      : rainfallValues.reduce(
+          (total, value) =>
+            total + value,
+          0,
+        );
+
+  const humidity = average(
+    selectedItems
+      .map((item) => item.humidity)
+      .filter(
+        (value): value is number =>
+          value !== null,
+      ),
+  );
+
   const handleSubmit = (
     event: FormEvent<HTMLFormElement>,
   ) => {
@@ -198,24 +296,49 @@ function HistoryPage() {
       formData.get('to') ?? '',
     );
 
-    if (
-      from &&
-      to &&
-      from <= to
-    ) {
-      /*
-       * Chỉ cập nhật bộ lọc hiển thị.
-       * Không gửi thêm request API.
-       */
-      setRange({
-        from,
-        to,
-      });
+    if (!from || !to) {
+      setError(
+        'Vui lòng chọn đầy đủ từ ngày và đến ngày.',
+      );
+      return;
     }
+
+    if (from > to) {
+      setError(
+        'Từ ngày không được lớn hơn đến ngày.',
+      );
+      return;
+    }
+
+    setError(null);
+
+    setRange({
+      from,
+      to,
+    });
   };
 
   const handleReset = () => {
-    setRange(getDefaultRange());
+    if (
+      availableFrom &&
+      availableTo
+    ) {
+      const startIndex = Math.max(
+        0,
+        historyItems.length - 7,
+      );
+
+      setRange({
+        from:
+          historyItems[startIndex]
+            ?.date ?? availableFrom,
+        to: availableTo,
+      });
+    } else {
+      setRange(getDefaultRange());
+    }
+
+    setError(null);
 
     setFormVersion(
       (currentVersion) =>
@@ -223,99 +346,50 @@ function HistoryPage() {
     );
   };
 
-  if (loading && !data) {
-    return (
-      <div className="page-container">
-        <LoadingSkeleton
-          message="Đang tải dữ liệu lịch sử..."
-        />
-      </div>
-    );
-  }
-
-  if (!data) {
-    return (
-      <div className="page-container">
-        <ErrorState
-          title="Không thể tải lịch sử"
-          message={
-            error ??
-            'Backend chưa trả dữ liệu lịch sử.'
-          }
-          onRetry={() =>
-            loadHistory(true)
-          }
-        />
-      </div>
-    );
-  }
-
-  const temperature = readNumber(
-    data.analysis,
-    [
-      'temperature.average',
-      'temperature.avg',
-      'avg_temperature',
-    ],
-  );
-
-  const maximumTemperature =
-    readNumber(data.analysis, [
-      'temperature.maximum',
-      'temperature.max',
-      'max_temperature',
-    ]);
-
-  const rainfall = readNumber(
-    data.analysis,
-    [
-      'rainfall.total',
-      'precipitation.total',
-      'total_rainfall',
-    ],
-  );
-
-  const humidity = readNumber(
-    data.analysis,
-    [
-      'humidity.average',
-      'humidity.avg',
-      'avg_humidity',
-    ],
-  );
-
   const handleExport = () => {
+    if (selectedItems.length === 0) {
+      setError(
+        'Không có dữ liệu trong khoảng ngày đã chọn để xuất.',
+      );
+      return;
+    }
+
     const header = [
       'Thành phố',
-      'Từ ngày',
-      'Đến ngày',
-      'Nhiệt độ trung bình',
-      'Nhiệt độ cao nhất',
-      'Lượng mưa',
-      'Độ ẩm',
+      'Ngày',
+      'Nhiệt độ thấp nhất (°C)',
+      'Nhiệt độ cao nhất (°C)',
+      'Độ ẩm (%)',
+      'Lượng mưa (mm)',
+      'Khả năng mưa (%)',
+      'Tốc độ gió (km/h)',
     ];
 
-    const values = [
-      city,
-      range.from,
-      range.to,
-      temperature ?? '',
-      maximumTemperature ?? '',
-      rainfall ?? '',
-      humidity ?? '',
-    ];
+    const rows = selectedItems.map(
+      (item) => [
+        data?.location.name ?? city,
+        item.date,
+        item.temperature.min ?? '',
+        item.temperature.max ?? '',
+        item.humidity ?? '',
+        getRainfall(item) ?? '',
+        item.rain_probability ?? '',
+        item.wind_speed ?? '',
+      ],
+    );
 
     const csv = [
       header,
-      values,
+      ...rows,
     ]
       .map((row) =>
         row
-          .map((value) =>
-            `"${String(value).replace(
-              /"/g,
-              '""',
-            )}"`,
+          .map(
+            (value) =>
+              `"${String(value).replace(
+                /"/g,
+                '""',
+              )}"`,
           )
           .join(','),
       )
@@ -347,12 +421,39 @@ function HistoryPage() {
     );
   };
 
+  if (loading && !data) {
+    return (
+      <div className="page-container">
+        <LoadingSkeleton
+          message="Đang tải dữ liệu lịch sử..."
+        />
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="page-container">
+        <ErrorState
+          title="Không thể tải lịch sử"
+          message={
+            error ??
+            'Backend chưa trả dữ liệu lịch sử.'
+          }
+          onRetry={() =>
+            loadHistory(true)
+          }
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="history-page page-container">
       <PageHeader
         eyebrow="Dữ liệu lịch sử"
-        title={`Lịch sử thời tiết - ${city}`}
-        description="API hiện cung cấp số liệu tổng hợp theo chu kỳ 15 ngày. Bộ lọc ngày không tạo thêm request."
+        title={`Lịch sử thời tiết - ${data.location.name ?? city}`}
+        description="Tra cứu dữ liệu thời tiết trong 7 ngày gần nhất do API cung cấp"
         icon={<CalendarDays />}
         actions={
           <button
@@ -393,6 +494,8 @@ function HistoryPage() {
             name="from"
             type="date"
             defaultValue={range.from}
+            min={availableFrom}
+            max={availableTo}
           />
         </label>
 
@@ -403,6 +506,8 @@ function HistoryPage() {
             name="to"
             type="date"
             defaultValue={range.to}
+            min={availableFrom}
+            max={availableTo}
           />
         </label>
 
@@ -444,69 +549,85 @@ function HistoryPage() {
         </div>
       </form>
 
-      <section className="history-page__metrics">
-        <WeatherMetricCard
-          label="Nhiệt độ trung bình"
-          value={
-            temperature === undefined
-              ? '—'
-              : formatTemperature(
-                  temperature,
-                  1,
-                )
-          }
-          description={`${formatDate(
-            range.from,
-          )} - ${formatDate(
-            range.to,
-          )}`}
-          icon={<Thermometer />}
-          tone="temperature"
+      {error && (
+        <ErrorState
+          title="Khoảng ngày chưa hợp lệ"
+          message={error}
+          compact
         />
+      )}
 
-        <WeatherMetricCard
-          label="Nhiệt độ cao nhất"
-          value={
-            maximumTemperature ===
-            undefined
-              ? '—'
-              : formatTemperature(
-                  maximumTemperature,
-                  1,
-                )
-          }
-          icon={<Thermometer />}
-          tone="warning"
+      {selectedItems.length === 0 ? (
+        <ErrorState
+          title="Không có dữ liệu"
+          message="Không có dữ liệu lịch sử trong khoảng ngày đã chọn."
+          compact
         />
+      ) : (
+        <section className="history-page__metrics">
+          <WeatherMetricCard
+            label="Nhiệt độ trung bình"
+            value={
+              temperature === undefined
+                ? '—'
+                : formatTemperature(
+                    temperature,
+                    1,
+                  )
+            }
+            description={`${formatDate(
+              range.from,
+            )} - ${formatDate(
+              range.to,
+            )}`}
+            icon={<Thermometer />}
+            tone="temperature"
+          />
 
-        <WeatherMetricCard
-          label="Tổng lượng mưa"
-          value={
-            rainfall === undefined
-              ? '—'
-              : formatRainfall(
-                  rainfall,
-                )
-          }
-          icon={<CloudRain />}
-          tone="rain"
-        />
+          <WeatherMetricCard
+            label="Nhiệt độ cao nhất"
+            value={
+              maximumTemperature ===
+              undefined
+                ? '—'
+                : formatTemperature(
+                    maximumTemperature,
+                    1,
+                  )
+            }
+            icon={<Thermometer />}
+            tone="warning"
+          />
 
-        <WeatherMetricCard
-          label="Độ ẩm trung bình"
-          value={
-            humidity === undefined
-              ? '—'
-              : formatPercentage(
-                  humidity,
-                  1,
-                )
-          }
-          icon={<Droplets />}
-          tone="humidity"
-          progress={humidity}
-        />
-      </section>
+          <WeatherMetricCard
+            label="Tổng lượng mưa"
+            value={
+              rainfall === undefined
+                ? '—'
+                : formatRainfall(
+                    rainfall,
+                  )
+            }
+            icon={<CloudRain />}
+            tone="rain"
+          />
+
+          <WeatherMetricCard
+            label="Độ ẩm trung bình"
+            value={
+              humidity === undefined
+                ? '—'
+                : formatPercentage(
+                    humidity,
+                    1,
+                  )
+            }
+            icon={<Droplets />}
+            tone="humidity"
+            progress={humidity}
+          />
+        </section>
+      )}
     </div>
   );
 }

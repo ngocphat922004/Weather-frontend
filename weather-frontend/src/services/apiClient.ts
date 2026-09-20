@@ -5,37 +5,61 @@ import axios, {
 
 import type {
     ApiErrorResponse,
+    ValidationErrorItem,
 } from '../types/weather';
 
-const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL?.trim();
+const DEFAULT_API_BASE_URL =
+    'https://weather-backend-0n6d.onrender.com';
 
-if (!API_BASE_URL) {
-    throw new Error(
-        'Thiếu VITE_API_BASE_URL trong file .env',
-    );
-}
+const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL?.trim() ||
+    DEFAULT_API_BASE_URL;
 
 const apiClient = axios.create({
     baseURL: API_BASE_URL.replace(/\/+$/, ''),
     timeout: 90000,
-
     headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
     },
 });
 
-/*
- * Chỉ xử lý response và chuẩn hóa lỗi.
- * Không tự động retry để tránh gửi request liên tục.
- */
+function getValidationMessage(
+    detail: ValidationErrorItem[],
+): string {
+    const firstError = detail[0];
+
+    if (!firstError) {
+        return 'Dữ liệu gửi lên không hợp lệ.';
+    }
+
+    const field = firstError.loc
+        .filter(
+            (part) =>
+                part !== 'body' &&
+                part !== 'query' &&
+                part !== 'path',
+        )
+        .join('.');
+
+    return field
+        ? `${field}: ${firstError.msg}`
+        : firstError.msg;
+}
+
 apiClient.interceptors.response.use(
     (response: AxiosResponse) => response,
 
     (error: AxiosError<ApiErrorResponse>) => {
         if (axios.isCancel(error)) {
             return Promise.reject(error);
+        }
+
+        if (error.code === 'ECONNABORTED') {
+            return Promise.reject(
+                new Error(
+                    'Máy chủ phản hồi quá lâu. Vui lòng thử lại sau.',
+                ),
+            );
         }
 
         if (!error.response) {
@@ -49,35 +73,38 @@ apiClient.interceptors.response.use(
         const status = error.response.status;
         const responseData = error.response.data;
 
-        const detail =
-            typeof responseData?.detail === 'string'
-                ? responseData.detail
-                : undefined;
+        const detail = responseData?.detail;
+
+        const detailMessage =
+            typeof detail === 'string'
+                ? detail
+                : Array.isArray(detail)
+                    ? getValidationMessage(detail)
+                    : undefined;
 
         const message =
             typeof responseData?.message === 'string'
                 ? responseData.message
                 : undefined;
 
-        /*
-         * Backend đôi khi trả HTTP 500 nhưng nội dung thực tế
-         * là Open-Meteo đang giới hạn request 429.
-         */
+        const normalizedError =
+            `${detailMessage ?? ''} ${message ?? ''}`
+                .toLowerCase();
+
         const isRateLimited =
             status === 429 ||
-            detail?.includes('429') ||
-            detail
-                ?.toLowerCase()
-                .includes('too many requests') ||
-            message?.includes('429') ||
-            message
-                ?.toLowerCase()
-                .includes('too many requests');
+            normalizedError.includes('429') ||
+            normalizedError.includes(
+                'too many requests',
+            ) ||
+            normalizedError.includes(
+                'rate limit',
+            );
 
         if (isRateLimited) {
             return Promise.reject(
                 new Error(
-                    'Dịch vụ thời tiết đang nhận quá nhiều yêu cầu. Vui lòng chờ vài phút rồi thử lại.',
+                    'Dịch vụ thời tiết đang nhận quá nhiều yêu cầu. Vui lòng chờ rồi thử lại.',
                 ),
             );
         }
@@ -85,6 +112,8 @@ apiClient.interceptors.response.use(
         if (status === 404) {
             return Promise.reject(
                 new Error(
+                    detailMessage ??
+                    message ??
                     'Không tìm thấy dữ liệu cho thành phố đã chọn.',
                 ),
             );
@@ -93,8 +122,9 @@ apiClient.interceptors.response.use(
         if (status === 422) {
             return Promise.reject(
                 new Error(
-                    detail ??
-                    'Tên thành phố hoặc tham số tìm kiếm không hợp lệ.',
+                    detailMessage ??
+                    message ??
+                    'Tên thành phố hoặc dữ liệu gửi lên không hợp lệ.',
                 ),
             );
         }
@@ -102,7 +132,7 @@ apiClient.interceptors.response.use(
         if (status >= 500) {
             return Promise.reject(
                 new Error(
-                    detail ??
+                    detailMessage ??
                     message ??
                     'Máy chủ thời tiết đang gặp sự cố. Vui lòng thử lại sau.',
                 ),
@@ -111,7 +141,7 @@ apiClient.interceptors.response.use(
 
         return Promise.reject(
             new Error(
-                detail ??
+                detailMessage ??
                 message ??
                 `Không thể tải dữ liệu thời tiết (${status}).`,
             ),

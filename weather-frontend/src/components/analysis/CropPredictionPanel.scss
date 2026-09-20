@@ -1,0 +1,158 @@
+@use '../../styles/mixins'as mixins;
+
+.crop-prediction {
+    display: grid;
+    gap    : 18px;
+    padding: 18px;
+}
+
+.crop-prediction__header {
+    @include mixins.card-header;
+
+    h2 {
+        margin   : 4px 0 3px;
+        font-size: 16px;
+    }
+
+    p {
+        margin   : 0;
+        color    : var(--color-text-muted);
+        font-size: 11px;
+    }
+}
+
+.crop-prediction__eyebrow {
+    display       : inline-flex;
+    align-items   : center;
+    gap           : 6px;
+    color         : var(--color-success);
+    font-size     : 9px;
+    font-weight   : 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    svg {
+        width : 13px;
+        height: 13px;
+    }
+}
+
+.crop-prediction__form {
+    display: grid;
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+    gap: 14px;
+
+    label {
+        position: relative;
+        display : grid;
+        gap     : 7px;
+
+        >span {
+            color      : var(--color-text-secondary);
+            font-size  : 11px;
+            font-weight: 700;
+        }
+
+        input {
+            padding-right: 46px;
+        }
+
+        small {
+            position : absolute;
+            right    : 14px;
+            bottom   : 13px;
+            color    : var(--color-text-muted);
+            font-size: 10px;
+        }
+    }
+
+    label:nth-of-type(6),
+    label:nth-of-type(7) {
+        input {
+            padding-right: 14px;
+        }
+    }
+}
+
+.crop-prediction__actions {
+    display        : flex;
+    grid-column    : 1 / -1;
+    align-items    : center;
+    justify-content: flex-end;
+    gap            : 10px;
+    padding-top    : 4px;
+}
+
+.crop-prediction__error {
+    display    : flex;
+    align-items: flex-start;
+    gap        : 9px;
+    padding    : 12px 14px;
+    border     : 1px solid color-mix(in srgb,
+            var(--color-danger) 25%,
+            var(--color-border));
+    border-radius: var(--radius-medium);
+    color        : var(--color-danger);
+    background   : var(--color-danger-soft);
+    font-size    : 11px;
+    line-height  : 1.5;
+
+    svg {
+        width     : 17px;
+        height    : 17px;
+        flex      : 0 0 17px;
+        margin-top: 1px;
+    }
+}
+
+.crop-prediction__spinner {
+    animation:
+        crop-prediction-spinner 800ms linear infinite;
+}
+
+.crop-prediction .agriculture-recommendation {
+    padding   : 0;
+    border    : 0;
+    box-shadow: none;
+}
+
+@keyframes crop-prediction-spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@include mixins.desktop {
+    .crop-prediction__form {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+@include mixins.mobile {
+    .crop-prediction {
+        gap    : 15px;
+        padding: 15px;
+    }
+
+    .crop-prediction__form {
+        grid-template-columns: 1fr;
+    }
+
+    .crop-prediction__actions {
+        display: grid;
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+
+        .app-button {
+            width: 100%;
+        }
+    }
+}
+
+@include mixins.small-mobile {
+    .crop-prediction__actions {
+        grid-template-columns: 1fr;
+    }
+}

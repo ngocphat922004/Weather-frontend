@@ -1,6 +1,8 @@
 import type {
     AgricultureRecommendationResponse,
     AirQualityResponse,
+    CropPredictionInput,
+    CropPredictionResponse,
     CurrentWeatherApiResponse,
     ExtremeWeatherResponse,
     LifestyleRecommendationResponse,
@@ -39,6 +41,9 @@ const ENDPOINTS = {
 
     overview:
         '/api/recommendations/overview',
+
+    predictCrops:
+        '/api/recommendations/predict-crops',
 } as const;
 
 function normalizeCity(city: string): string {
@@ -60,38 +65,56 @@ function createCacheKey(
     return `weather:${resource}:${city}`;
 }
 
+function createCropPredictionCacheKey(
+    payload: CropPredictionInput,
+): string {
+    const normalizedPayload = {
+        temperature: payload.temperature,
+        humidity: payload.humidity,
+        rainfall: payload.rainfall,
+        temp_min:
+            payload.temp_min ?? null,
+        temp_max:
+            payload.temp_max ?? null,
+        region_code:
+            payload.region_code ?? 'bac_bo',
+        season:
+            payload.season ?? 'Mùa Mưa',
+    };
+
+    return `weather:predict-crops:${JSON.stringify(
+        normalizedPayload,
+    )}`;
+}
+
 async function getCachedWeather<T>(
     resource: string,
     endpoint: string,
     city: string,
     forceRefresh = false,
 ): Promise<T> {
-    const normalizedCity = normalizeCity(city);
+    void forceRefresh;
+
+    const normalizedCity =
+        normalizeCity(city);
 
     const cacheKey = createCacheKey(
         resource,
         normalizedCity,
     );
 
-    /*
-     * Chỉ xóa cache khi người dùng chủ động làm mới.
-     */
-    if (forceRefresh) {
-        clearRequestCache(cacheKey);
-    }
-
     return requestWithCache<T>(
         cacheKey,
-
         async () => {
-            const response = await apiClient.get<T>(
-                endpoint,
-                {
-                    params: {
-                        city: normalizedCity,
+            const response =
+                await apiClient.get<T>(
+                    endpoint,
+                    {
+                        params: {
+                            city: normalizedCity,
+                        },
                     },
-                },
-            );
+                );
 
             return response.data;
         },
@@ -218,10 +241,46 @@ export function getOverview(
     );
 }
 
-/*
- * Xóa toàn bộ cache thời tiết của một thành phố.
- * Dùng khi cần tải lại mọi page cho thành phố đó.
- */
+export function predictCrops(
+    payload: CropPredictionInput,
+    forceRefresh = false,
+): Promise<CropPredictionResponse> {
+    void forceRefresh;
+
+    const normalizedPayload:
+        CropPredictionInput = {
+        temperature: payload.temperature,
+        humidity: payload.humidity,
+        rainfall: payload.rainfall,
+        temp_min:
+            payload.temp_min ?? null,
+        temp_max:
+            payload.temp_max ?? null,
+        region_code:
+            payload.region_code ?? 'bac_bo',
+        season:
+            payload.season ?? 'Mùa Mưa',
+    };
+
+    const cacheKey =
+        createCropPredictionCacheKey(
+            normalizedPayload,
+        );
+
+    return requestWithCache<CropPredictionResponse>(
+        cacheKey,
+        async () => {
+            const response =
+                await apiClient.post<CropPredictionResponse>(
+                    ENDPOINTS.predictCrops,
+                    normalizedPayload,
+                );
+
+            return response.data;
+        },
+    );
+}
+
 export function clearCityWeatherCache(
     city: string,
 ): void {
@@ -251,11 +310,20 @@ export function clearCityWeatherCache(
     });
 }
 
-/*
- * Xóa toàn bộ cache thuộc nhóm weather.
- */
+export function clearCropPredictionCache(
+    payload: CropPredictionInput,
+): void {
+    clearRequestCache(
+        createCropPredictionCacheKey(
+            payload,
+        ),
+    );
+}
+
 export function clearAllWeatherCache(): void {
-    clearRequestCacheByPrefix('weather:');
+    clearRequestCacheByPrefix(
+        'weather:',
+    );
 }
 
 export const weatherService = {
@@ -271,8 +339,10 @@ export const weatherService = {
     getLifestyleRecommendations,
     getAgricultureRecommendations,
     getOverview,
+    predictCrops,
 
     clearCityWeatherCache,
+    clearCropPredictionCache,
     clearAllWeatherCache,
 };
 

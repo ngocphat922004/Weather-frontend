@@ -26,19 +26,13 @@ import LifestyleRecommendation, {
 } from '../../components/analysis/LifestyleRecommendation';
 
 import PageHeader from '../../components/common/PageHeader';
-
 import ErrorState from '../../components/states/ErrorState';
 import LoadingSkeleton from '../../components/states/LoadingSkeleton';
-
 import CurrentWeatherCard from '../../components/weather/CurrentWeatherCard';
 import ExtremeWeatherAlert from '../../components/weather/ExtremeWeatherAlert';
-import HourlyForecast, {
-  type HourlyForecastItem,
-} from '../../components/weather/HourlyForecast';
 import WeatherMetricCard from '../../components/weather/WeatherMetricCard';
 
 import { useWeather } from '../../hooks/useWeather';
-
 import weatherService from '../../services/weatherService';
 
 import type {
@@ -53,132 +47,30 @@ import {
   formatTemperature,
   formatTime,
   formatWindSpeed,
-  getFirstValue,
-  getWeatherDescription,
   toNumber,
   toText,
 } from '../../utils/formatters';
 
 import './DashboardPage.scss';
 
-function readNumber(
-  source: unknown,
-  paths: string[],
-): number | undefined {
-  const value = getFirstValue(
-    source,
-    paths,
-  );
+type AlertSeverity =
+  | 'safe'
+  | 'info'
+  | 'warning'
+  | 'danger';
 
-  const numberValue = toNumber(
-    value,
+function readNumber(
+  source: JsonObject,
+  key: string,
+): number | undefined {
+  const value = toNumber(
+    source[key],
     Number.NaN,
   );
 
-  return Number.isNaN(numberValue)
+  return Number.isNaN(value)
     ? undefined
-    : numberValue;
-}
-
-function readText(
-  source: unknown,
-  paths: string[],
-): string | undefined {
-  const value = getFirstValue(
-    source,
-    paths,
-  );
-
-  const textValue = toText(value, '');
-
-  return textValue || undefined;
-}
-
-function hasObjectData(
-  value: JsonObject,
-): boolean {
-  return Object.keys(value).length > 0;
-}
-
-function buildHourlyItems(
-  currentWeather: JsonObject,
-): HourlyForecastItem[] {
-  const times = asArray(
-    getFirstValue(currentWeather, [
-      'hourly.time',
-      'hourly.times',
-      'hourly.timestamps',
-    ]),
-  );
-
-  const temperatures = asArray(
-    getFirstValue(currentWeather, [
-      'hourly.temperature_2m',
-      'hourly.temperatures',
-      'hourly.temperature',
-    ]),
-  );
-
-  const weatherCodes = asArray(
-    getFirstValue(currentWeather, [
-      'hourly.weather_code',
-      'hourly.weathercode',
-      'hourly.weather_codes',
-    ]),
-  );
-
-  const precipitation = asArray(
-    getFirstValue(currentWeather, [
-      'hourly.precipitation_probability',
-      'hourly.rain_probability',
-    ]),
-  );
-
-  return times
-    .slice(0, 8)
-    .map((time, index) => {
-      const temperature = toNumber(
-        temperatures[index],
-        Number.NaN,
-      );
-
-      const weatherCode = toNumber(
-        weatherCodes[index],
-        Number.NaN,
-      );
-
-      const rainProbability = toNumber(
-        precipitation[index],
-        Number.NaN,
-      );
-
-      return {
-        id: `${toText(time, 'hour')}-${index}`,
-        time: formatTime(time),
-
-        temperature: Number.isNaN(
-          temperature,
-        )
-          ? '—'
-          : formatTemperature(temperature),
-
-        weatherCode: Number.isNaN(
-          weatherCode,
-        )
-          ? undefined
-          : weatherCode,
-
-        precipitation: Number.isNaN(
-          rainProbability,
-        )
-          ? undefined
-          : formatPercentage(
-              rainProbability,
-            ),
-
-        isCurrent: index === 0,
-      };
-    });
+    : value;
 }
 
 function buildPollutants(
@@ -194,11 +86,6 @@ function buildPollutants(
       const pollutant =
         asObject(rawPollutant);
 
-      const name = toText(
-        pollutant.name,
-        key,
-      );
-
       const value = toText(
         pollutant.value,
         '—',
@@ -211,11 +98,13 @@ function buildPollutants(
 
       return {
         id: key,
-        label: name,
+        label: toText(
+          pollutant.name,
+          key,
+        ),
         value: unit
           ? `${value} ${unit}`
           : value,
-
         description: toText(
           pollutant.description,
           '',
@@ -248,11 +137,9 @@ function buildLifestyleItems(
     });
   }
 
-  const outdoorActivities = asArray(
+  asArray(
     lifestyle.outdoor_activities,
-  );
-
-  outdoorActivities
+  )
     .slice(0, 2)
     .forEach((rawActivity, index) => {
       const activity =
@@ -272,37 +159,38 @@ function buildLifestyleItems(
         return;
       }
 
+      const status = toText(
+        activity.status,
+        '',
+      ).toLowerCase();
+
       items.push({
         id: `outdoor-${index}`,
         title,
         description,
         category: 'outdoor',
-
         priority:
-          toText(
-            activity.status,
-            '',
-          ).toLowerCase() ===
-          'cần lưu ý'
+          status.includes('lưu ý') ||
+          status.includes(
+            'không khuyến khích',
+          )
             ? 'important'
             : 'normal',
       });
     });
 
-  const healthAdvice = asArray(
-    lifestyle.health_and_safety_advice,
-  );
-
-  const firstHealthAdvice = toText(
-    healthAdvice[0],
+  const healthAdvice = toText(
+    asArray(
+      lifestyle.health_and_safety_advice,
+    )[0],
     '',
   );
 
-  if (firstHealthAdvice) {
+  if (healthAdvice) {
     items.push({
       id: 'health',
       title: 'Sức khỏe',
-      description: firstHealthAdvice,
+      description: healthAdvice,
       category: 'health',
     });
   }
@@ -311,20 +199,16 @@ function buildLifestyleItems(
     lifestyle.commute_and_travel,
   );
 
-  const travelAdvice = asArray(
-    commute.travel_advice,
-  );
-
-  const firstTravelAdvice = toText(
-    travelAdvice[0],
+  const travelAdvice = toText(
+    asArray(commute.travel_advice)[0],
     '',
   );
 
-  if (firstTravelAdvice) {
+  if (travelAdvice) {
     items.push({
       id: 'traffic',
       title: 'Di chuyển',
-      description: firstTravelAdvice,
+      description: travelAdvice,
       category: 'traffic',
     });
   }
@@ -352,11 +236,11 @@ function buildAgricultureItems(
     });
   }
 
-  const crops = asArray(
-    agriculture.top_recommended_crops,
+  const firstCrop = asObject(
+    asArray(
+      agriculture.top_recommended_crops,
+    )[0],
   );
-
-  const firstCrop = asObject(crops[0]);
 
   const cropName = toText(
     firstCrop.name,
@@ -364,60 +248,99 @@ function buildAgricultureItems(
   );
 
   if (cropName) {
+    const score = toNumber(
+      firstCrop.suitability_score,
+      Number.NaN,
+    );
+
     const fitLevel = toText(
       firstCrop.fit_level,
       '',
     );
+
+    const careTips = toText(
+      firstCrop.care_tips,
+      '',
+    );
+
+    const scoreText = Number.isNaN(score)
+      ? ''
+      : `Độ phù hợp ${score}%`;
+
+    const description = [
+      fitLevel,
+      scoreText,
+      careTips,
+    ]
+      .filter(Boolean)
+      .join(' · ');
 
     items.push({
       id: toText(
         firstCrop.crop_id,
         'recommended-crop',
       ),
-
       title: `Cây trồng phù hợp: ${cropName}`,
-
-      description:
-        toText(
-          firstCrop.care_tips,
-          '',
-        ) ||
-        fitLevel ||
-        'Có trong danh sách cây trồng được đề xuất.',
-
+      description,
       category: 'crop',
     });
   }
 
-  const risks = asArray(
-    agriculture.agricultural_weather_risks,
+  const firstRisk = asObject(
+    asArray(
+      agriculture.agricultural_weather_risks,
+    )[0],
   );
 
-  const firstRisk = risks[0];
+  const riskMessage = toText(
+    firstRisk.message,
+    '',
+  );
 
-  if (firstRisk !== undefined) {
-    const riskObject =
-      asObject(firstRisk);
+  if (riskMessage) {
+    const severity = toText(
+      firstRisk.severity,
+      '',
+    ).toUpperCase();
 
-    const riskDescription =
-      toText(
-        riskObject.description,
-        '',
-      ) ||
-      toText(firstRisk, '');
-
-    if (riskDescription) {
-      items.push({
-        id: 'agriculture-risk',
-        title: 'Cảnh báo nông nghiệp',
-        description: riskDescription,
-        category: 'pest',
-        status: 'warning',
-      });
-    }
+    items.push({
+      id: 'agriculture-risk',
+      title: toText(
+        firstRisk.risk,
+        'Cảnh báo nông nghiệp',
+      ),
+      description: riskMessage,
+      category: 'weather',
+      status:
+        severity === 'WARNING' ||
+        severity === 'CRITICAL'
+          ? 'warning'
+          : 'normal',
+    });
   }
 
   return items.slice(0, 3);
+}
+
+function mapAlertSeverity(
+  severity: string,
+): AlertSeverity {
+  switch (severity.toUpperCase()) {
+    case 'CRITICAL':
+      return 'danger';
+
+    case 'WARNING':
+      return 'warning';
+
+    case 'INFO':
+      return 'info';
+
+    case 'SAFE':
+      return 'safe';
+
+    default:
+      return 'info';
+  }
 }
 
 function DashboardPage() {
@@ -490,12 +413,10 @@ function DashboardPage() {
   );
 
   useEffect(() => {
-    const timeoutId = window.setTimeout(
-      () => {
+    const timeoutId =
+      window.setTimeout(() => {
         void loadDashboard();
-      },
-      0,
-    );
+      }, 0);
 
     return () => {
       window.clearTimeout(timeoutId);
@@ -514,22 +435,21 @@ function DashboardPage() {
     );
   }
 
-  if (error && !dashboardData) {
+  if (!dashboardData) {
     return (
       <div className="page-container">
         <ErrorState
           title="Không thể tải Dashboard"
-          message={error}
+          message={
+            error ??
+            'Không có dữ liệu tổng quan.'
+          }
           onRetry={() =>
             loadDashboard(true)
           }
         />
       </div>
     );
-  }
-
-  if (!dashboardData) {
-    return null;
   }
 
   const {
@@ -547,90 +467,59 @@ function DashboardPage() {
     lifestyle.weather_condition,
   );
 
+  const weatherSummary = asObject(
+    agriculture.weather_summary,
+  );
+
   const temperature = readNumber(
-    dashboardData,
-    [
-      'current_weather.temperature',
-      'current_weather.current.temperature_2m',
-      'current_weather.current.temperature',
-      'lifestyle_recommendations.weather_condition.temperature',
-    ],
+    currentWeather,
+    'temperature',
   );
 
   const feelsLike = readNumber(
-    dashboardData,
-    [
-      'current_weather.feels_like',
-      'current_weather.current.apparent_temperature',
-      'lifestyle_recommendations.weather_condition.feels_like',
-    ],
+    currentWeather,
+    'feels_like',
   );
-
-  const weatherCode = readNumber(
-    dashboardData,
-    [
-      'current_weather.weather_code',
-      'current_weather.current.weather_code',
-    ],
-  );
-
-  const condition =
-    readText(dashboardData, [
-      'current_weather.weather_name',
-      'current_weather.condition',
-      'lifestyle_recommendations.weather_condition.weather_name',
-    ]) ??
-    getWeatherDescription(weatherCode);
 
   const humidity = readNumber(
-    dashboardData,
-    [
-      'current_weather.humidity',
-      'current_weather.current.relative_humidity_2m',
-      'agriculture_recommendations.weather_summary.avg_humidity',
-    ],
+    currentWeather,
+    'humidity',
   );
 
   const windSpeed = readNumber(
-    dashboardData,
-    [
-      'current_weather.wind_speed',
-      'current_weather.current.wind_speed_10m',
-      'lifestyle_recommendations.weather_condition.wind_speed',
-    ],
+    currentWeather,
+    'wind_speed',
+  );
+
+  const weatherCode = readNumber(
+    currentWeather,
+    'weather_code',
   );
 
   const rainProbability = readNumber(
-    dashboardData,
-    [
-      'current_weather.rain_probability',
-      'lifestyle_recommendations.weather_condition.rain_probability',
-    ],
+    weatherCondition,
+    'rain_probability',
   );
 
   const maximumTemperature = readNumber(
-    dashboardData,
-    [
-      'current_weather.max_temperature',
-      'agriculture_recommendations.weather_summary.max_temperature',
-    ],
+    weatherSummary,
+    'max_temperature',
   );
 
   const minimumTemperature = readNumber(
-    dashboardData,
-    [
-      'current_weather.min_temperature',
-      'agriculture_recommendations.weather_summary.min_temperature',
-    ],
+    weatherSummary,
+    'min_temperature',
   );
 
   const aqi = readNumber(
     airQuality,
-    ['aqi'],
+    'aqi',
   );
 
-  const hourlyItems =
-    buildHourlyItems(currentWeather);
+  const condition = toText(
+    weatherCondition.weather_name,
+    'Chưa xác định',
+  );
 
   const pollutants =
     buildPollutants(airQuality);
@@ -641,13 +530,31 @@ function DashboardPage() {
   const agricultureItems =
     buildAgricultureItems(agriculture);
 
-  const alertSummary = readText(
-    extremeAlerts,
-    ['summary', 'message'],
+  const overallSeverity = toText(
+    extremeAlerts.overall_severity,
+    'SAFE',
   );
 
-  const hasAlertData =
-    hasObjectData(extremeAlerts);
+  const alertSummary = toText(
+    extremeAlerts.summary,
+    'Không có cảnh báo thời tiết đáng chú ý.',
+  );
+
+  const firstAlert = asObject(
+    asArray(extremeAlerts.alerts)[0],
+  );
+
+  const alertTitle = toText(
+    firstAlert.type,
+    overallSeverity === 'SAFE'
+      ? 'Thời tiết an toàn'
+      : 'Cảnh báo thời tiết',
+  );
+
+  const alertAdvice = toText(
+    firstAlert.advice,
+    '',
+  );
 
   return (
     <div className="dashboard-page page-container">
@@ -683,19 +590,13 @@ function DashboardPage() {
       />
 
       <ExtremeWeatherAlert
-        severity={
-          hasAlertData
-            ? 'warning'
-            : 'info'
-        }
-        title={
-          hasAlertData
-            ? 'Cảnh báo thời tiết'
-            : 'Thông tin cảnh báo'
-        }
-        message={
-          alertSummary ??
-          'Backend chưa trả dữ liệu cảnh báo cho khu vực này.'
+        severity={mapAlertSeverity(
+          overallSeverity,
+        )}
+        title={alertTitle}
+        message={alertSummary}
+        advice={
+          alertAdvice || undefined
         }
       />
 
@@ -733,7 +634,9 @@ function DashboardPage() {
                   minimumTemperature,
                 )
           }
-          updatedAt={formatTime(new Date())}
+          updatedAt={formatTime(
+            new Date(),
+          )}
           weatherCode={weatherCode}
         />
 
@@ -747,7 +650,7 @@ function DashboardPage() {
                     humidity,
                   )
             }
-            description="Độ ẩm trung bình"
+            description="Độ ẩm hiện tại"
             icon={<Droplets />}
             tone="humidity"
             progress={humidity}
@@ -779,7 +682,7 @@ function DashboardPage() {
                     rainProbability,
                   )
             }
-            description="Xác suất mưa"
+            description="Xác suất mưa hôm nay"
             icon={<Umbrella />}
             tone="rain"
             progress={rainProbability}
@@ -804,19 +707,13 @@ function DashboardPage() {
         </div>
       </section>
 
-      {hourlyItems.length > 0 && (
-        <HourlyForecast
-          items={hourlyItems}
-        />
-      )}
-
       <section className="dashboard-page__insights">
         <AirQualityCard
           aqi={aqi ?? 0}
           pollutants={pollutants}
-          summary={readText(
-            airQuality,
-            ['description'],
+          summary={toText(
+            airQuality.description,
+            '',
           )}
         />
 

@@ -1,29 +1,156 @@
-const DEFAULT_CACHE_TIME = 5 * 60 * 1000;
+const DEFAULT_CACHE_TIME =
+    15 * 60 * 1000;
+
+const MIN_REQUEST_INTERVAL =
+    1200;
+
+const STORAGE_PREFIX =
+    'weather-cache:';
 
 interface CacheEntry<T> {
     data: T;
     expiresAt: number;
 }
 
-/*
- * Lưu kết quả đã tải thành công.
- */
 const responseCache = new Map<
     string,
     CacheEntry<unknown>
 >();
 
-/*
- * Lưu Promise đang chạy để nhiều component không gửi
- * trùng cùng một request.
- */
 const pendingRequests = new Map<
     string,
     Promise<unknown>
 >();
 
-function normalizeCacheKey(key: string): string {
+let requestQueue:
+    Promise<void> = Promise.resolve();
+
+function normalizeCacheKey(
+    key: string,
+): string {
     return key.trim().toLowerCase();
+}
+
+function getStorageKey(
+    key: string,
+): string {
+    return `${STORAGE_PREFIX}${key}`;
+}
+
+function readSessionCache<T>(
+    key: string,
+): CacheEntry<T> | undefined {
+    if (
+        typeof window === 'undefined'
+    ) {
+        return undefined;
+    }
+
+    try {
+        const stored =
+            window.sessionStorage.getItem(
+                getStorageKey(key),
+            );
+
+        if (!stored) {
+            return undefined;
+        }
+
+        const parsed =
+            JSON.parse(
+                stored,
+            ) as CacheEntry<T>;
+
+        if (
+            parsed.expiresAt <=
+            Date.now()
+        ) {
+            window.sessionStorage.removeItem(
+                getStorageKey(key),
+            );
+
+            return undefined;
+        }
+
+        return parsed;
+    } catch {
+        return undefined;
+    }
+}
+
+function writeSessionCache<T>(
+    key: string,
+    entry: CacheEntry<T>,
+): void {
+    if (
+        typeof window === 'undefined'
+    ) {
+        return;
+    }
+
+    try {
+        window.sessionStorage.setItem(
+            getStorageKey(key),
+            JSON.stringify(entry),
+        );
+    } catch {
+        return;
+    }
+}
+
+function removeSessionCache(
+    key: string,
+): void {
+    if (
+        typeof window === 'undefined'
+    ) {
+        return;
+    }
+
+    try {
+        window.sessionStorage.removeItem(
+            getStorageKey(key),
+        );
+    } catch {
+        return;
+    }
+}
+
+function wait(
+    milliseconds: number,
+): Promise<void> {
+    return new Promise((resolve) => {
+        window.setTimeout(
+            resolve,
+            milliseconds,
+        );
+    });
+}
+
+function enqueueRequest<T>(
+    request: () => Promise<T>,
+): Promise<T> {
+    const execute =
+        async (): Promise<T> => {
+            await wait(
+                MIN_REQUEST_INTERVAL,
+            );
+
+            return request();
+        };
+
+    const result =
+        requestQueue.then(
+            execute,
+            execute,
+        );
+
+    requestQueue = result.then(
+        () => undefined,
+        () => undefined,
+    );
+
+    return result;
 }
 
 export async function requestWithCache<T>(
@@ -31,37 +158,53 @@ export async function requestWithCache<T>(
     request: () => Promise<T>,
     cacheTime = DEFAULT_CACHE_TIME,
 ): Promise<T> {
-    const normalizedKey = normalizeCacheKey(key);
+    const normalizedKey =
+        normalizeCacheKey(key);
+
     const now = Date.now();
 
-    const cachedEntry =
-        responseCache.get(normalizedKey) as
+    const memoryCache =
+        responseCache.get(
+            normalizedKey,
+        ) as
         | CacheEntry<T>
         | undefined;
 
-    /*
-     * Trả dữ liệu cache nếu vẫn còn hiệu lực.
-     */
     if (
-        cachedEntry &&
-        cachedEntry.expiresAt > now
+        memoryCache &&
+        memoryCache.expiresAt > now
     ) {
-        return cachedEntry.data;
+        return memoryCache.data;
     }
 
-    /*
-     * Xóa cache đã hết hạn.
-     */
-    if (cachedEntry) {
-        responseCache.delete(normalizedKey);
+    if (memoryCache) {
+        responseCache.delete(
+            normalizedKey,
+        );
+
+        removeSessionCache(
+            normalizedKey,
+        );
     }
 
-    /*
-     * Nếu request giống nhau đang chạy, sử dụng lại Promise
-     * thay vì gửi thêm request mới.
-     */
+    const sessionCache =
+        readSessionCache<T>(
+            normalizedKey,
+        );
+
+    if (sessionCache) {
+        responseCache.set(
+            normalizedKey,
+            sessionCache,
+        );
+
+        return sessionCache.data;
+    }
+
     const pendingRequest =
-        pendingRequests.get(normalizedKey) as
+        pendingRequests.get(
+            normalizedKey,
+        ) as
         | Promise<T>
         | undefined;
 
@@ -69,18 +212,34 @@ export async function requestWithCache<T>(
         return pendingRequest;
     }
 
-    const requestPromise = request()
-        .then((data) => {
-            responseCache.set(normalizedKey, {
-                data,
-                expiresAt: Date.now() + cacheTime,
-            });
+    const requestPromise =
+        enqueueRequest(request)
+            .then((data) => {
+                const entry:
+                    CacheEntry<T> = {
+                    data,
+                    expiresAt:
+                        Date.now() +
+                        cacheTime,
+                };
 
-            return data;
-        })
-        .finally(() => {
-            pendingRequests.delete(normalizedKey);
-        });
+                responseCache.set(
+                    normalizedKey,
+                    entry,
+                );
+
+                writeSessionCache(
+                    normalizedKey,
+                    entry,
+                );
+
+                return data;
+            })
+            .finally(() => {
+                pendingRequests.delete(
+                    normalizedKey,
+                );
+            });
 
     pendingRequests.set(
         normalizedKey,
@@ -90,40 +249,126 @@ export async function requestWithCache<T>(
     return requestPromise;
 }
 
-/*
- * Xóa cache của một request cụ thể.
- */
 export function clearRequestCache(
     key: string,
 ): void {
+    const normalizedKey =
+        normalizeCacheKey(key);
+
     responseCache.delete(
-        normalizeCacheKey(key),
+        normalizedKey,
+    );
+
+    removeSessionCache(
+        normalizedKey,
     );
 }
 
-/*
- * Xóa các cache bắt đầu bằng một nhóm khóa.
- *
- * Ví dụ:
- * clearRequestCacheByPrefix('weather:')
- */
 export function clearRequestCacheByPrefix(
     prefix: string,
 ): void {
     const normalizedPrefix =
         normalizeCacheKey(prefix);
 
-    responseCache.forEach((_, key) => {
-        if (key.startsWith(normalizedPrefix)) {
-            responseCache.delete(key);
+    responseCache.forEach(
+        (_, key) => {
+            if (
+                key.startsWith(
+                    normalizedPrefix,
+                )
+            ) {
+                responseCache.delete(key);
+
+                removeSessionCache(
+                    key,
+                );
+            }
+        },
+    );
+
+    if (
+        typeof window ===
+        'undefined'
+    ) {
+        return;
+    }
+
+    const keysToRemove:
+        string[] = [];
+
+    for (
+        let index = 0;
+        index <
+        window.sessionStorage.length;
+        index += 1
+    ) {
+        const storageKey =
+            window.sessionStorage.key(
+                index,
+            );
+
+        if (!storageKey) {
+            continue;
         }
-    });
+
+        if (
+            storageKey.startsWith(
+                `${STORAGE_PREFIX}${normalizedPrefix}`,
+            )
+        ) {
+            keysToRemove.push(
+                storageKey,
+            );
+        }
+    }
+
+    keysToRemove.forEach(
+        (storageKey) => {
+            window.sessionStorage.removeItem(
+                storageKey,
+            );
+        },
+    );
 }
 
-/*
- * Xóa toàn bộ dữ liệu cache.
- * Không hủy các request đang chạy.
- */
 export function clearAllRequestCache(): void {
     responseCache.clear();
+
+    if (
+        typeof window ===
+        'undefined'
+    ) {
+        return;
+    }
+
+    const keysToRemove:
+        string[] = [];
+
+    for (
+        let index = 0;
+        index <
+        window.sessionStorage.length;
+        index += 1
+    ) {
+        const key =
+            window.sessionStorage.key(
+                index,
+            );
+
+        if (
+            key?.startsWith(
+                STORAGE_PREFIX,
+            )
+        ) {
+            keysToRemove.push(key);
+        }
+    }
+
+    keysToRemove.forEach(
+        (key) => {
+            window.sessionStorage.removeItem(
+                key,
+            );
+        },
+    );
 }

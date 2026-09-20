@@ -27,10 +27,8 @@ import LifestyleRecommendation, {
 } from '../../components/analysis/LifestyleRecommendation';
 
 import PageHeader from '../../components/common/PageHeader';
-
 import ErrorState from '../../components/states/ErrorState';
 import LoadingSkeleton from '../../components/states/LoadingSkeleton';
-
 import ExtremeWeatherAlert from '../../components/weather/ExtremeWeatherAlert';
 import WeatherMetricCard from '../../components/weather/WeatherMetricCard';
 
@@ -45,7 +43,10 @@ import type {
   JsonObject,
   LifestyleRecommendationResponse,
   WeatherAnalysisSummaryResponse,
+  WeatherTrendsApiResponse,
 } from '../../types/weather';
+
+import CropPredictionPanel from '../../components/analysis/CropPredictionPanel';
 
 import {
   asArray,
@@ -54,7 +55,6 @@ import {
   formatRainfall,
   formatTemperature,
   formatWindSpeed,
-  getFirstValue,
   toNumber,
   toText,
 } from '../../utils/formatters';
@@ -67,9 +67,19 @@ type AnalysisTab =
   | 'agriculture'
   | 'lifestyle';
 
+type AlertSeverity =
+  | 'safe'
+  | 'info'
+  | 'warning'
+  | 'danger';
+
 interface OverviewData {
   summary:
     | WeatherAnalysisSummaryResponse
+    | null;
+
+  trends:
+    | WeatherTrendsApiResponse
     | null;
 
   extremes:
@@ -98,39 +108,6 @@ const analysisTabs: Array<{
     label: 'Gợi ý sinh hoạt',
   },
 ];
-
-function readNumber(
-  source: unknown,
-  paths: string[],
-): number | undefined {
-  const value = getFirstValue(
-    source,
-    paths,
-  );
-
-  const result = toNumber(
-    value,
-    Number.NaN,
-  );
-
-  return Number.isNaN(result)
-    ? undefined
-    : result;
-}
-
-function readText(
-  source: unknown,
-  paths: string[],
-): string | undefined {
-  const value = getFirstValue(
-    source,
-    paths,
-  );
-
-  const result = toText(value, '');
-
-  return result || undefined;
-}
 
 function getRequestError(
   error: unknown,
@@ -165,16 +142,13 @@ function buildPollutants(
 
       return {
         id: key,
-
         label: toText(
           pollutant.name,
           key,
         ),
-
         value: unit
           ? `${value} ${unit}`
           : value,
-
         description: toText(
           pollutant.description,
           '',
@@ -208,9 +182,31 @@ function buildLifestyleItems(
   }
 
   asArray(
+    clothing.accessories_and_gears,
+  )
+    .slice(0, 2)
+    .forEach((rawAccessory, index) => {
+      const accessory = toText(
+        rawAccessory,
+        '',
+      );
+
+      if (!accessory) {
+        return;
+      }
+
+      items.push({
+        id: `accessory-${index}`,
+        title: 'Phụ kiện nên mang theo',
+        description: accessory,
+        category: 'clothing',
+      });
+    });
+
+  asArray(
     lifestyle.outdoor_activities,
   )
-    .slice(0, 4)
+    .slice(0, 5)
     .forEach((rawActivity, index) => {
       const activity =
         asObject(rawActivity);
@@ -239,9 +235,11 @@ function buildLifestyleItems(
         title,
         description,
         category: 'outdoor',
-
         priority:
-          status.includes('lưu ý')
+          status.includes('lưu ý') ||
+          status.includes(
+            'không khuyến khích',
+          )
             ? 'important'
             : 'normal',
       });
@@ -250,7 +248,7 @@ function buildLifestyleItems(
   asArray(
     lifestyle.health_and_safety_advice,
   )
-    .slice(0, 2)
+    .slice(0, 3)
     .forEach((rawAdvice, index) => {
       const advice = toText(
         rawAdvice,
@@ -273,8 +271,22 @@ function buildLifestyleItems(
     lifestyle.commute_and_travel,
   );
 
+  const roadCondition = toText(
+    commute.road_condition,
+    '',
+  );
+
+  if (roadCondition) {
+    items.push({
+      id: 'road-condition',
+      title: 'Điều kiện giao thông',
+      description: roadCondition,
+      category: 'traffic',
+    });
+  }
+
   asArray(commute.travel_advice)
-    .slice(0, 2)
+    .slice(0, 3)
     .forEach((rawAdvice, index) => {
       const advice = toText(
         rawAdvice,
@@ -352,20 +364,21 @@ function buildAgricultureItems(
           ? ''
           : `Độ phù hợp ${score}%`;
 
+      const description = [
+        fitLevel,
+        scoreText,
+        careTips,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+
       items.push({
         id: toText(
           crop.crop_id,
           `crop-${index}`,
         ),
-
         title: cropName,
-
-        description:
-          careTips ||
-          [fitLevel, scoreText]
-            .filter(Boolean)
-            .join(' · '),
-
+        description,
         category: 'crop',
       });
 
@@ -374,7 +387,10 @@ function buildAgricultureItems(
         '',
       );
 
-      if (diseaseRisk && index === 0) {
+      if (
+        diseaseRisk &&
+        index === 0
+      ) {
         items.push({
           id: 'disease-risk',
           title: `Nguy cơ với ${cropName}`,
@@ -388,41 +404,78 @@ function buildAgricultureItems(
   asArray(
     agriculture.agricultural_weather_risks,
   )
-    .slice(0, 2)
+    .slice(0, 4)
     .forEach((rawRisk, index) => {
       const risk = asObject(rawRisk);
 
-      const description =
-        toText(
-          risk.description,
-          '',
-        ) ||
-        toText(rawRisk, '');
+      const title = toText(
+        risk.risk,
+        'Rủi ro thời tiết',
+      );
+
+      const description = toText(
+        risk.message,
+        '',
+      );
 
       if (!description) {
         return;
       }
 
+      const severity = toText(
+        risk.severity,
+        '',
+      ).toUpperCase();
+
       items.push({
         id: `weather-risk-${index}`,
-        title: toText(
-          risk.title,
-          'Rủi ro thời tiết',
-        ),
+        title,
         description,
         category: 'weather',
-        status: 'warning',
+        status:
+          severity === 'WARNING' ||
+          severity === 'CRITICAL'
+            ? 'warning'
+            : 'normal',
       });
     });
 
   return items;
 }
 
+function mapExtremeSeverity(
+  severity?: string,
+): AlertSeverity {
+  switch (
+    severity?.toUpperCase()
+  ) {
+    case 'CRITICAL':
+      return 'danger';
+
+    case 'WARNING':
+      return 'warning';
+
+    case 'INFO':
+      return 'info';
+
+    case 'SAFE':
+      return 'safe';
+
+    default:
+      return 'info';
+  }
+}
+
 function AnalysisPage() {
   const { city } = useWeather();
 
-  const [activeTab, setActiveTab] =
-    useState<AnalysisTab>('air-quality');
+  const [
+    activeTab,
+    setActiveTab,
+  ] =
+    useState<AnalysisTab>(
+      'overview',
+    );
 
   const [
     overviewByCity,
@@ -435,7 +488,10 @@ function AnalysisPage() {
     airQualityByCity,
     setAirQualityByCity,
   ] = useState<
-    Record<string, AirQualityResponse>
+    Record<
+      string,
+      AirQualityResponse
+    >
   >({});
 
   const [
@@ -458,16 +514,29 @@ function AnalysisPage() {
     >
   >({});
 
-  const [loadingKey, setLoadingKey] =
-    useState<string | null>(null);
+  const [
+    loadingKey,
+    setLoadingKey,
+  ] =
+    useState<string | null>(
+      null,
+    );
 
-  const [errors, setErrors] =
-    useState<Record<string, string>>({});
+  const [
+    errors,
+    setErrors,
+  ] =
+    useState<
+      Record<string, string>
+    >({});
 
-  const requestSequence = useRef(0);
+  const requestSequence =
+    useRef(0);
 
   const normalizedCity =
-    city.toLocaleLowerCase();
+    city
+      .trim()
+      .toLocaleLowerCase();
 
   const currentKey =
     `${normalizedCity}:${activeTab}`;
@@ -475,15 +544,19 @@ function AnalysisPage() {
   const hasCurrentData =
     activeTab === 'overview'
       ? Boolean(
-          overviewByCity[normalizedCity],
+          overviewByCity[
+            normalizedCity
+          ],
         )
-      : activeTab === 'air-quality'
+      : activeTab ===
+          'air-quality'
         ? Boolean(
             airQualityByCity[
               normalizedCity
             ],
           )
-        : activeTab === 'agriculture'
+        : activeTab ===
+            'agriculture'
           ? Boolean(
               agricultureByCity[
                 normalizedCity
@@ -500,8 +573,13 @@ function AnalysisPage() {
       tab: AnalysisTab,
       forceRefresh = false,
     ) => {
+      const cityKey =
+        city
+          .trim()
+          .toLocaleLowerCase();
+
       const key =
-        `${city.toLocaleLowerCase()}:${tab}`;
+        `${cityKey}:${tab}`;
 
       const currentRequest =
         ++requestSequence.current;
@@ -509,29 +587,44 @@ function AnalysisPage() {
       try {
         setLoadingKey(key);
 
-        setErrors((currentErrors) => {
-          const nextErrors = {
-            ...currentErrors,
-          };
+        setErrors(
+          (
+            currentErrors,
+          ) => {
+            const nextErrors = {
+              ...currentErrors,
+            };
 
-          delete nextErrors[key];
+            delete nextErrors[
+              key
+            ];
 
-          return nextErrors;
-        });
+            return nextErrors;
+          },
+        );
 
-        if (tab === 'overview') {
+        if (
+          tab === 'overview'
+        ) {
           const results =
-            await Promise.allSettled([
-              weatherService.getAnalysisSummary(
-                city,
-                forceRefresh,
-              ),
+            await Promise.allSettled(
+              [
+                weatherService.getAnalysisSummary(
+                  city,
+                  forceRefresh,
+                ),
 
-              weatherService.getExtremeWeather(
-                city,
-                forceRefresh,
-              ),
-            ]);
+                weatherService.getAnalysisTrends(
+                  city,
+                  forceRefresh,
+                ),
+
+                weatherService.getExtremeWeather(
+                  city,
+                  forceRefresh,
+                ),
+              ],
+            );
 
           if (
             currentRequest !==
@@ -542,27 +635,52 @@ function AnalysisPage() {
 
           const [
             summaryResult,
+            trendsResult,
             extremesResult,
           ] = results;
 
-          if (
-            summaryResult.status ===
-              'rejected' &&
-            extremesResult.status ===
+          const allFailed =
+            results.every(
+              (result) =>
+                result.status ===
+                'rejected',
+            );
+
+          if (allFailed) {
+            const firstFailure =
+              results.find(
+                (result) =>
+                  result.status ===
+                  'rejected',
+              );
+
+            if (
+              firstFailure?.status ===
               'rejected'
-          ) {
-            throw summaryResult.reason;
+            ) {
+              throw firstFailure.reason;
+            }
+
+            throw new Error(
+              'Không thể tải dữ liệu phân tích.',
+            );
           }
 
           setOverviewByCity(
             (currentData) => ({
               ...currentData,
 
-              [city.toLocaleLowerCase()]: {
+              [cityKey]: {
                 summary:
                   summaryResult.status ===
                   'fulfilled'
                     ? summaryResult.value
+                    : null,
+
+                trends:
+                  trendsResult.status ===
+                  'fulfilled'
+                    ? trendsResult.value
                     : null,
 
                 extremes:
@@ -577,7 +695,10 @@ function AnalysisPage() {
           return;
         }
 
-        if (tab === 'air-quality') {
+        if (
+          tab ===
+          'air-quality'
+        ) {
           const response =
             await weatherService.getAirQuality(
               city,
@@ -594,7 +715,7 @@ function AnalysisPage() {
           setAirQualityByCity(
             (currentData) => ({
               ...currentData,
-              [city.toLocaleLowerCase()]:
+              [cityKey]:
                 response,
             }),
           );
@@ -602,13 +723,15 @@ function AnalysisPage() {
           return;
         }
 
-        if (tab === 'agriculture') {
+        if (
+          tab ===
+          'agriculture'
+        ) {
           const response =
-            await weatherService
-              .getAgricultureRecommendations(
-                city,
-                forceRefresh,
-              );
+            await weatherService.getAgricultureRecommendations(
+              city,
+              forceRefresh,
+            );
 
           if (
             currentRequest !==
@@ -620,7 +743,7 @@ function AnalysisPage() {
           setAgricultureByCity(
             (currentData) => ({
               ...currentData,
-              [city.toLocaleLowerCase()]:
+              [cityKey]:
                 response,
             }),
           );
@@ -629,11 +752,10 @@ function AnalysisPage() {
         }
 
         const response =
-          await weatherService
-            .getLifestyleRecommendations(
-              city,
-              forceRefresh,
-            );
+          await weatherService.getLifestyleRecommendations(
+            city,
+            forceRefresh,
+          );
 
         if (
           currentRequest !==
@@ -645,11 +767,13 @@ function AnalysisPage() {
         setLifestyleByCity(
           (currentData) => ({
             ...currentData,
-            [city.toLocaleLowerCase()]:
+            [cityKey]:
               response,
           }),
         );
-      } catch (requestError: unknown) {
+      } catch (
+        requestError: unknown
+      ) {
         if (
           currentRequest !==
           requestSequence.current
@@ -657,11 +781,18 @@ function AnalysisPage() {
           return;
         }
 
-        setErrors((currentErrors) => ({
-          ...currentErrors,
-          [key]:
-            getRequestError(requestError),
-        }));
+        setErrors(
+          (
+            currentErrors,
+          ) => ({
+            ...currentErrors,
+
+            [key]:
+              getRequestError(
+                requestError,
+              ),
+          }),
+        );
       } finally {
         if (
           currentRequest ===
@@ -679,16 +810,23 @@ function AnalysisPage() {
       return;
     }
 
-    const timeoutId = window.setTimeout(
-      () => {
-        void loadTab(activeTab);
-      },
-      0,
-    );
+    const timeoutId =
+      window.setTimeout(
+        () => {
+          void loadTab(
+            activeTab,
+          );
+        },
+        0,
+      );
 
     return () => {
-      window.clearTimeout(timeoutId);
-      requestSequence.current += 1;
+      window.clearTimeout(
+        timeoutId,
+      );
+
+      requestSequence.current +=
+        1;
     };
   }, [
     activeTab,
@@ -697,223 +835,349 @@ function AnalysisPage() {
   ]);
 
   const isLoading =
-    loadingKey === currentKey;
+    loadingKey ===
+    currentKey;
 
   const currentError =
     errors[currentKey];
 
-  const renderOverview = () => {
-    const overview =
-      overviewByCity[normalizedCity];
+  const renderOverview =
+    () => {
+      const overview =
+        overviewByCity[
+          normalizedCity
+        ];
 
-    if (!overview) {
+      if (!overview) {
+        return null;
+      }
+
+      const analysis =
+        overview.summary
+          ?.analysis;
+
+      const temperature =
+        analysis
+          ?.temperature_analysis
+          ?.avg_temp;
+
+      const humidity =
+        analysis
+          ?.humidity_analysis
+          ?.avg_humidity;
+
+      const rainfall =
+        analysis
+          ?.precipitation_analysis
+          ?.total_rain;
+
+      const windSpeed =
+        analysis
+          ?.wind_analysis
+          ?.avg_wind_speed;
+
+      const trends =
+        overview.trends
+          ?.trend_comparison ??
+        overview.summary
+          ?.comparison_trend;
+
+      const temperatureTrend =
+        trends?.temperature;
+
+      const precipitationTrend =
+        trends?.precipitation;
+
+      const humidityTrend =
+        trends?.humidity;
+
+      const windTrend =
+        trends?.wind;
+
+      const extremes =
+        overview.extremes;
+
+      return (
+        <div className="analysis-page__overview">
+          <div className="analysis-page__metrics">
+            <WeatherMetricCard
+              label="Nhiệt độ trung bình"
+              value={
+                temperature ===
+                undefined
+                  ? '—'
+                  : formatTemperature(
+                      temperature,
+                      1,
+                    )
+              }
+              icon={
+                <Thermometer />
+              }
+              tone="temperature"
+            />
+
+            <WeatherMetricCard
+              label="Độ ẩm trung bình"
+              value={
+                humidity ===
+                undefined
+                  ? '—'
+                  : formatPercentage(
+                      humidity,
+                      1,
+                    )
+              }
+              icon={
+                <Droplets />
+              }
+              tone="humidity"
+              progress={
+                humidity
+              }
+            />
+
+            <WeatherMetricCard
+              label="Tổng lượng mưa"
+              value={
+                rainfall ===
+                undefined
+                  ? '—'
+                  : formatRainfall(
+                      rainfall,
+                    )
+              }
+              icon={
+                <CloudRain />
+              }
+              tone="rain"
+            />
+
+            <WeatherMetricCard
+              label="Gió trung bình"
+              value={
+                windSpeed ===
+                undefined
+                  ? '—'
+                  : formatWindSpeed(
+                      windSpeed,
+                      1,
+                    )
+              }
+              icon={<Wind />}
+              tone="wind"
+            />
+          </div>
+
+          {trends && (
+            <div className="analysis-page__metrics">
+              <WeatherMetricCard
+                label="Xu hướng nhiệt độ"
+                value={
+                  temperatureTrend
+                    ? formatTemperature(
+                        temperatureTrend.forecast_avg,
+                        1,
+                      )
+                    : '—'
+                }
+                description={
+                  temperatureTrend
+                    ? `${temperatureTrend.trend} · Chênh lệch ${temperatureTrend.difference.toFixed(1)}°C`
+                    : 'Chưa có dữ liệu'
+                }
+                icon={
+                  <Thermometer />
+                }
+                tone="temperature"
+              />
+
+              <WeatherMetricCard
+                label="Xu hướng lượng mưa"
+                value={
+                  precipitationTrend
+                    ? formatRainfall(
+                        precipitationTrend.forecast_total,
+                      )
+                    : '—'
+                }
+                description={
+                  precipitationTrend
+                    ? `${precipitationTrend.trend} · Chênh lệch ${precipitationTrend.difference.toFixed(1)} mm`
+                    : 'Chưa có dữ liệu'
+                }
+                icon={
+                  <CloudRain />
+                }
+                tone="rain"
+              />
+
+              <WeatherMetricCard
+                label="Xu hướng độ ẩm"
+                value={
+                  humidityTrend
+                    ? formatPercentage(
+                        humidityTrend.forecast_avg,
+                        1,
+                      )
+                    : '—'
+                }
+                description={
+                  humidityTrend
+                    ? `${humidityTrend.trend} · Chênh lệch ${humidityTrend.difference.toFixed(1)}%`
+                    : 'Chưa có dữ liệu'
+                }
+                icon={
+                  <Droplets />
+                }
+                tone="humidity"
+              />
+
+              <WeatherMetricCard
+                label="Xu hướng gió"
+                value={
+                  windTrend
+                    ? formatWindSpeed(
+                        windTrend.forecast_avg_speed,
+                        1,
+                      )
+                    : '—'
+                }
+                description={
+                  windTrend
+                    ? `${windTrend.trend} · Chênh lệch ${windTrend.difference.toFixed(1)} km/h`
+                    : 'Chưa có dữ liệu'
+                }
+                icon={<Wind />}
+                tone="wind"
+              />
+            </div>
+          )}
+
+          {trends?.overall_trend_summary && (
+            <ExtremeWeatherAlert
+              severity="info"
+              title="Xu hướng thời tiết"
+              message={
+                trends.overall_trend_summary
+              }
+            />
+          )}
+
+          <ExtremeWeatherAlert
+            severity={mapExtremeSeverity(
+              extremes
+                ?.overall_severity,
+            )}
+            title={
+              extremes
+                ? `${extremes.total_alerts} cảnh báo thời tiết`
+                : 'Phân tích hiện tượng cực đoan'
+            }
+            message={
+              extremes?.summary ??
+              'Backend chưa trả dữ liệu phân tích hiện tượng cực đoan.'
+            }
+            advice={
+              extremes
+                ?.alerts?.[0]
+                ?.advice ??
+              undefined
+            }
+          />
+        </div>
+      );
+    };
+
+  const renderAirQuality =
+    () => {
+      const response =
+        airQualityByCity[
+          normalizedCity
+        ];
+
+      if (!response) {
+        return null;
+      }
+
+      const airQuality =
+        response.air_quality;
+
+      const aqi = toNumber(
+        airQuality.aqi,
+        0,
+      );
+
+      return (
+        <AirQualityCard
+          aqi={aqi}
+          pollutants={buildPollutants(
+            airQuality,
+          )}
+          summary={toText(
+            airQuality.description,
+
+            toText(
+              airQuality.health_effects,
+              '',
+            ),
+          )}
+        />
+      );
+    };
+
+  const renderAgriculture =
+  () => {
+    const response =
+      agricultureByCity[
+        normalizedCity
+      ];
+
+    if (!response) {
       return null;
     }
 
-    const summary =
-      overview.summary ?? {};
-
-    const analysis = asObject(
-      getFirstValue(summary, [
-        'analysis',
-      ]),
-    );
-
-    const temperature = readNumber(
-      analysis,
-      [
-        'temperature.average',
-        'temperature.avg',
-        'avg_temperature',
-      ],
-    );
-
-    const humidity = readNumber(
-      analysis,
-      [
-        'humidity.average',
-        'humidity.avg',
-        'avg_humidity',
-      ],
-    );
-
-    const rainfall = readNumber(
-      analysis,
-      [
-        'rainfall.total',
-        'precipitation.total',
-        'total_rainfall',
-      ],
-    );
-
-    const windSpeed = readNumber(
-      analysis,
-      [
-        'wind.average_speed',
-        'wind.avg',
-        'avg_wind_speed',
-      ],
-    );
-
-    const extremes = overview.extremes;
-
     return (
-      <div className="analysis-page__overview">
-        <div className="analysis-page__metrics">
-          <WeatherMetricCard
-            label="Nhiệt độ trung bình"
-            value={
-              temperature === undefined
-                ? '—'
-                : formatTemperature(
-                    temperature,
-                    1,
-                  )
-            }
-            icon={<Thermometer />}
-            tone="temperature"
-          />
-
-          <WeatherMetricCard
-            label="Độ ẩm trung bình"
-            value={
-              humidity === undefined
-                ? '—'
-                : formatPercentage(
-                    humidity,
-                    1,
-                  )
-            }
-            icon={<Droplets />}
-            tone="humidity"
-            progress={humidity}
-          />
-
-          <WeatherMetricCard
-            label="Tổng lượng mưa"
-            value={
-              rainfall === undefined
-                ? '—'
-                : formatRainfall(
-                    rainfall,
-                  )
-            }
-            icon={<CloudRain />}
-            tone="rain"
-          />
-
-          <WeatherMetricCard
-            label="Gió trung bình"
-            value={
-              windSpeed === undefined
-                ? '—'
-                : formatWindSpeed(
-                    windSpeed,
-                    1,
-                  )
-            }
-            icon={<Wind />}
-            tone="wind"
-          />
-        </div>
-
-        <ExtremeWeatherAlert
-          severity={
-            extremes &&
-            extremes.total_alerts > 0
-              ? 'warning'
-              : extremes
-                ? 'safe'
-                : 'info'
-          }
-          title={
-            extremes &&
-            extremes.total_alerts > 0
-              ? `${extremes.total_alerts} cảnh báo thời tiết`
-              : 'Phân tích hiện tượng cực đoan'
-          }
-          message={
-            extremes?.summary ??
-            'Backend chưa trả dữ liệu phân tích hiện tượng cực đoan.'
-          }
+      <div className="analysis-page__agriculture">
+        <AgricultureRecommendation
+          items={buildAgricultureItems(
+            response
+              .agriculture_recommendations,
+          )}
         />
+
+        <CropPredictionPanel />
       </div>
     );
   };
 
-  const renderAirQuality = () => {
-    const response =
-      airQualityByCity[normalizedCity];
+  const renderLifestyle =
+    () => {
+      const response =
+        lifestyleByCity[
+          normalizedCity
+        ];
 
-    if (!response) {
-      return null;
-    }
+      if (!response) {
+        return null;
+      }
 
-    const airQuality =
-      response.air_quality;
-
-    const aqi = readNumber(
-      airQuality,
-      ['aqi'],
-    );
-
-    return (
-      <AirQualityCard
-        aqi={aqi ?? 0}
-        pollutants={buildPollutants(
-          airQuality,
-        )}
-        summary={readText(
-          airQuality,
-          [
-            'description',
-            'health_effects',
-          ],
-        )}
-      />
-    );
-  };
-
-  const renderAgriculture = () => {
-    const response =
-      agricultureByCity[normalizedCity];
-
-    if (!response) {
-      return null;
-    }
-
-    return (
-      <AgricultureRecommendation
-        items={buildAgricultureItems(
-          response.agriculture_recommendations,
-        )}
-      />
-    );
-  };
-
-  const renderLifestyle = () => {
-    const response =
-      lifestyleByCity[normalizedCity];
-
-    if (!response) {
-      return null;
-    }
-
-    return (
-      <LifestyleRecommendation
-        items={buildLifestyleItems(
-          response.lifestyle_recommendations,
-        )}
-      />
-    );
-  };
+      return (
+        <LifestyleRecommendation
+          items={buildLifestyleItems(
+            response
+              .lifestyle_recommendations,
+          )}
+        />
+      );
+    };
 
   return (
     <div className="analysis-page page-container">
       <PageHeader
         eyebrow="Phân tích thông minh"
         title={`Dữ liệu phân tích cho ${city}`}
-        description="Chất lượng không khí, thời tiết cực đoan và các khuyến nghị theo khu vực"
+        description="Chất lượng không khí, xu hướng thời tiết và các khuyến nghị theo khu vực"
         icon={<BarChart3 />}
         actions={
           <button
@@ -925,7 +1189,9 @@ function AnalysisPage() {
                 true,
               );
             }}
-            disabled={isLoading}
+            disabled={
+              isLoading
+            }
           >
             <RefreshCw
               className={
@@ -949,26 +1215,32 @@ function AnalysisPage() {
         className="analysis-page__tabs"
         aria-label="Nhóm phân tích"
       >
-        {analysisTabs.map((tab) => (
-          <button
-            className={
-              activeTab === tab.id
-                ? 'analysis-page__tab analysis-page__tab--active'
-                : 'analysis-page__tab'
-            }
-            type="button"
-            key={tab.id}
-            onClick={() => {
-              setActiveTab(tab.id);
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
+        {analysisTabs.map(
+          (tab) => (
+            <button
+              className={
+                activeTab ===
+                tab.id
+                  ? 'analysis-page__tab analysis-page__tab--active'
+                  : 'analysis-page__tab'
+              }
+              type="button"
+              key={tab.id}
+              onClick={() => {
+                setActiveTab(
+                  tab.id,
+                );
+              }}
+            >
+              {tab.label}
+            </button>
+          ),
+        )}
       </nav>
 
       <section className="analysis-page__content">
-        {isLoading && !hasCurrentData ? (
+        {isLoading &&
+        !hasCurrentData ? (
           <LoadingSkeleton
             variant="cards"
             cardCount={4}
@@ -978,7 +1250,9 @@ function AnalysisPage() {
           !hasCurrentData ? (
           <ErrorState
             title="Không thể tải phân tích"
-            message={currentError}
+            message={
+              currentError
+            }
             onRetry={() =>
               loadTab(
                 activeTab,
@@ -988,7 +1262,8 @@ function AnalysisPage() {
           />
         ) : (
           <>
-            {activeTab === 'overview' &&
+            {activeTab ===
+              'overview' &&
               renderOverview()}
 
             {activeTab ===
@@ -999,7 +1274,8 @@ function AnalysisPage() {
               'agriculture' &&
               renderAgriculture()}
 
-            {activeTab === 'lifestyle' &&
+            {activeTab ===
+              'lifestyle' &&
               renderLifestyle()}
           </>
         )}
