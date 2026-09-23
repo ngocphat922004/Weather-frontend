@@ -13,7 +13,11 @@ import type {
     WeatherTrendsApiResponse,
 } from '../types/weather';
 
-import apiClient from './apiClient';
+import weatherMockData from '../mocks/weatherMockData';
+
+import apiClient, {
+    isWeatherApiUnavailableError,
+} from './apiClient';
 
 import {
     clearRequestCache,
@@ -45,6 +49,12 @@ const ENDPOINTS = {
     predictCrops:
         '/api/recommendations/predict-crops',
 } as const;
+
+const USE_MOCK_API =
+    import.meta.env.VITE_USE_MOCK_API === 'true';
+
+const ENABLE_MOCK_FALLBACK =
+    import.meta.env.VITE_ENABLE_MOCK_FALLBACK !== 'false';
 
 function normalizeCity(city: string): string {
     const normalizedCity = city.trim();
@@ -87,37 +97,75 @@ function createCropPredictionCacheKey(
     )}`;
 }
 
+async function getApiOrMock<T>(
+    apiRequest: () => Promise<T>,
+    mockFactory: () => T,
+): Promise<T> {
+    if (USE_MOCK_API) {
+        return mockFactory();
+    }
+
+    try {
+        return await apiRequest();
+    } catch (error: unknown) {
+        if (
+            ENABLE_MOCK_FALLBACK &&
+            isWeatherApiUnavailableError(error)
+        ) {
+            console.warn(
+                '[Weather] API không khả dụng, chuyển sang mock data.',
+                error,
+            );
+
+            return mockFactory();
+        }
+
+        throw error;
+    }
+}
+
 async function getCachedWeather<T>(
     resource: string,
     endpoint: string,
     city: string,
+    mockFactory: (city: string) => T,
     forceRefresh = false,
 ): Promise<T> {
-    void forceRefresh;
-
     const normalizedCity =
         normalizeCity(city);
+
+    if (USE_MOCK_API) {
+        return mockFactory(normalizedCity);
+    }
 
     const cacheKey = createCacheKey(
         resource,
         normalizedCity,
     );
 
+    if (forceRefresh) {
+        clearRequestCache(cacheKey);
+    }
+
     return requestWithCache<T>(
         cacheKey,
-        async () => {
-            const response =
-                await apiClient.get<T>(
-                    endpoint,
-                    {
-                        params: {
-                            city: normalizedCity,
-                        },
-                    },
-                );
+        () =>
+            getApiOrMock<T>(
+                async () => {
+                    const response =
+                        await apiClient.get<T>(
+                            endpoint,
+                            {
+                                params: {
+                                    city: normalizedCity,
+                                },
+                            },
+                        );
 
-            return response.data;
-        },
+                    return response.data;
+                },
+                () => mockFactory(normalizedCity),
+            ),
     );
 }
 
@@ -129,6 +177,7 @@ export function getCurrentWeather(
         'current',
         ENDPOINTS.current,
         city,
+        weatherMockData.current,
         forceRefresh,
     );
 }
@@ -141,6 +190,7 @@ export function getWeather15Days(
         '15-days',
         ENDPOINTS.forecast15Days,
         city,
+        weatherMockData.forecast15Days,
         forceRefresh,
     );
 }
@@ -153,6 +203,7 @@ export function getWeatherAlerts(
         'alerts',
         ENDPOINTS.alerts,
         city,
+        weatherMockData.alerts,
         forceRefresh,
     );
 }
@@ -165,6 +216,7 @@ export function getAnalysisSummary(
         'analysis-summary',
         ENDPOINTS.analysisSummary,
         city,
+        weatherMockData.analysisSummary,
         forceRefresh,
     );
 }
@@ -177,6 +229,7 @@ export function getAnalysisTrends(
         'analysis-trends',
         ENDPOINTS.analysisTrends,
         city,
+        weatherMockData.analysisTrends,
         forceRefresh,
     );
 }
@@ -189,6 +242,7 @@ export function getExtremeWeather(
         'analysis-extremes',
         ENDPOINTS.analysisExtremes,
         city,
+        weatherMockData.extremes,
         forceRefresh,
     );
 }
@@ -201,6 +255,7 @@ export function getAirQuality(
         'air-quality',
         ENDPOINTS.airQuality,
         city,
+        weatherMockData.airQuality,
         forceRefresh,
     );
 }
@@ -213,6 +268,7 @@ export function getLifestyleRecommendations(
         'lifestyle',
         ENDPOINTS.lifestyle,
         city,
+        weatherMockData.lifestyle,
         forceRefresh,
     );
 }
@@ -225,6 +281,7 @@ export function getAgricultureRecommendations(
         'agriculture',
         ENDPOINTS.agriculture,
         city,
+        weatherMockData.agriculture,
         forceRefresh,
     );
 }
@@ -237,6 +294,7 @@ export function getOverview(
         'overview',
         ENDPOINTS.overview,
         city,
+        weatherMockData.overview,
         forceRefresh,
     );
 }
@@ -245,8 +303,6 @@ export function predictCrops(
     payload: CropPredictionInput,
     forceRefresh = false,
 ): Promise<CropPredictionResponse> {
-    void forceRefresh;
-
     const normalizedPayload:
         CropPredictionInput = {
         temperature: payload.temperature,
@@ -262,22 +318,41 @@ export function predictCrops(
             payload.season ?? 'Mùa Mưa',
     };
 
+    if (USE_MOCK_API) {
+        return Promise.resolve(
+            weatherMockData.predictCrops(
+                normalizedPayload,
+            ),
+        );
+    }
+
     const cacheKey =
         createCropPredictionCacheKey(
             normalizedPayload,
         );
 
+    if (forceRefresh) {
+        clearRequestCache(cacheKey);
+    }
+
     return requestWithCache<CropPredictionResponse>(
         cacheKey,
-        async () => {
-            const response =
-                await apiClient.post<CropPredictionResponse>(
-                    ENDPOINTS.predictCrops,
-                    normalizedPayload,
-                );
+        () =>
+            getApiOrMock<CropPredictionResponse>(
+                async () => {
+                    const response =
+                        await apiClient.post<CropPredictionResponse>(
+                            ENDPOINTS.predictCrops,
+                            normalizedPayload,
+                        );
 
-            return response.data;
-        },
+                    return response.data;
+                },
+                () =>
+                    weatherMockData.predictCrops(
+                        normalizedPayload,
+                    ),
+            ),
     );
 }
 
